@@ -40,7 +40,6 @@ internal class AlarmReceiver : BroadcastReceiver() {
 
                 repository?.let {
                     try {
-
                         val alarmNotification = it.getAlarmNotification(requestId)
 
                         alarmNotification.notificationChannelItem?.let { channel ->
@@ -61,7 +60,7 @@ internal class AlarmReceiver : BroadcastReceiver() {
                         else
                             alarmService.resetAlarmTomorrow(alarmNotification)
                     } catch (ex: IllegalArgumentException) {
-                        Timber.e("updateRepeatingAlarm: The alarm intended to be removed does not exist! ")
+                        Timber.e("updateRepeatingAlarm: The alarm intended to be removed does not exist! ${ex.stackTraceToString()}")
                     } catch (ex: Exception) {
                         Timber.e("updateRepeatingAlarm: $ex ")
                     }

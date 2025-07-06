@@ -1,11 +1,11 @@
 package de.coldtea.smplr.smplralarm.models
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
  */
-@JsonClass(generateAdapter = true)
+@Serializable
 internal data class ActiveWeekDays(
     val days: List<WeekDays>
 )

@@ -12,28 +12,34 @@ import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI.Companion.SMPLR_ALARM_NOTI
 import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI.Companion.SMPLR_ALARM_REQUEST_ID
 import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
 import de.coldtea.smplr.smplralarm.models.NotificationItem
+import timber.log.Timber
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
  */
 
-private fun Context.initChannelAndReturnName(notificationChannelItem: NotificationChannelItem): String =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val channelId = packageName
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+private fun Context.createNotificationChannelIfNotExists(notificationChannelItem: NotificationChannelItem) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
+    val notificationManager =
+        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    // Notification channels are idempotent, calling this multiple times is safe.
+    if (notificationManager.getNotificationChannel(notificationChannelItem.channelId) == null) {
         with(notificationChannelItem) {
-            val channel = NotificationChannel(channelId, name, importance).apply {
-                description = description
+            Timber.d("Creating notification channel: ID=$channelId, Name=${name.takeIf { it.isNotEmpty() } ?: packageName}, Importance=$importance")
+
+            val channel = NotificationChannel(
+                channelId,
+                name.takeIf { it.isNotEmpty() } ?: packageName,
+                importance).apply {
+                description = this@with.description
                 setShowBadge(showBadge)
-                setSound(null ,null)
             }
             notificationManager.createNotificationChannel(channel)
         }
-
-        channelId
-    } else packageName
+    }
+}
 
 internal fun Context.showNotification(
     requestId: Int,
@@ -43,63 +49,72 @@ internal fun Context.showNotification(
     alarmReceivedIntent: Intent? = null,
     fullScreenIntent: Intent? = null
 ) {
-    val channelId = initChannelAndReturnName(notificationChannelItem)
-    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    runCatching {
+        createNotificationChannelIfNotExists(notificationChannelItem)
 
-    val notification = NotificationCompat.Builder(this, channelId).apply {
-        priority = NotificationCompat.PRIORITY_HIGH
-        with(notificationItem) {
-            setSmallIcon(smallIcon?: R.drawable.ic_baseline_notifications_active_24)
-            setContentTitle(title)
-            setContentText(message)
-            setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
-            priority = NotificationCompat.PRIORITY_DEFAULT
-            setAutoCancel(autoCancel?:true)
-            setAllowSystemGeneratedContextualActions(false)
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            if (notificationItem.notificationDismissedIntent != null){
-                setDeleteIntent(
-                    this@showNotification.getBroadcast(
-                        requestId,
-                        requireNotNull(notificationItem.notificationDismissedIntent)
+        Timber.d("Creating notification: ID=$requestId, Channel ID=${notificationChannelItem.channelId}, Title='${notificationItem.title}' ${notificationItem.smallIcon}")
+
+        val notification =
+            NotificationCompat.Builder(this, notificationChannelItem.channelId).apply {
+                priority = NotificationCompat.PRIORITY_HIGH
+                with(notificationItem) {
+                    setSmallIcon(smallIcon.takeIf { it != 0 } ?: R.drawable.ic_baseline_notifications_active_24)
+                    setContentTitle(title)
+                    setContentText(message)
+                    setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
+                    priority = NotificationCompat.PRIORITY_DEFAULT
+                    setAutoCancel(autoCancel != false)
+                    setAllowSystemGeneratedContextualActions(false)
+
+                    if (notificationItem.notificationDismissedIntent != null) {
+                        setDeleteIntent(
+                            this@showNotification.getBroadcast(
+                                requestId,
+                                requireNotNull(notificationItem.notificationDismissedIntent)
+                            )
+                        )
+                    }
+
+                    if (contentIntent != null) {
+                        setContentIntent(
+                            getScreenIntent(requestId, contentIntent)
+                        )
+                    }
+
+                    if (fullScreenIntent != null) {
+                        setFullScreenIntent(
+                            getScreenIntent(requestId, fullScreenIntent),
+                            true
+                        )
+                    }
+
+                    if (notificationItem.firstButtonText != null && notificationItem.firstButtonIntent != null) addAction(
+                        0,
+                        notificationItem.firstButtonText,
+                        this@showNotification.getBroadcast(
+                            requestId,
+                            requireNotNull(notificationItem.firstButtonIntent)
+                        )
                     )
-                )
-            }
 
-            if (contentIntent != null) {
-                setContentIntent(
-                    getScreenIntent(requestId, contentIntent)
-                )
-            }
+                    if (notificationItem.secondButtonText != null && notificationItem.secondButtonIntent != null) addAction(
+                        0,
+                        notificationItem.secondButtonText,
+                        this@showNotification.getBroadcast(
+                            requestId,
+                            requireNotNull(notificationItem.secondButtonIntent)
+                        )
+                    )
+                }
+            }.build()
 
-            if (fullScreenIntent != null) {
-                setFullScreenIntent(
-                    getScreenIntent(requestId, fullScreenIntent),
-                    true
-                )
-            }
-
-            if (notificationItem.firstButtonText != null && notificationItem.firstButtonIntent != null) addAction(
-                0,
-                notificationItem.firstButtonText,
-                this@showNotification.getBroadcast(
-                    requestId,
-                    requireNotNull(notificationItem.firstButtonIntent)
-                )
-            )
-
-            if (notificationItem.secondButtonText != null && notificationItem.secondButtonIntent != null) addAction(
-                0,
-                notificationItem.secondButtonText,
-                this@showNotification.getBroadcast(
-                    requestId,
-                    requireNotNull(notificationItem.secondButtonIntent)
-                )
-            )
-        }
-    }.build()
-
-    notificationManager.notify(requestId, notification)
+        notificationManager.notify(requestId, notification)
+    }.onFailure { exception ->
+        Timber.e("Failed to create notification ${exception.stackTraceToString()}")
+    }
 
     if (alarmReceivedIntent != null) {
         alarmReceivedIntent.putExtra(SMPLR_ALARM_REQUEST_ID, requestId)
@@ -114,6 +129,7 @@ internal fun Context.getScreenIntent(requestId: Int, intent: Intent): PendingInt
         intent,
         PendingIntent.FLAG_IMMUTABLE
     )
+
 private fun Context.getBroadcast(requestId: Int, intent: Intent): PendingIntent =
     PendingIntent.getBroadcast(
         this,
