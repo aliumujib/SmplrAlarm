@@ -1,3 +1,0 @@
-include ':smplralarm'
-include ':app'
-rootProject.name = "SmplrAlarm"
