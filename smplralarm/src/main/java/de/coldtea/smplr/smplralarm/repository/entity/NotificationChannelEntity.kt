@@ -27,6 +27,7 @@ internal data class NotificationChannelEntity(
 
 internal fun NotificationChannelEntity.convertToNotificationChannelItem() =
     NotificationChannelItem(
+        channelId.toString(),
         importance,
         showBadge,
         name,

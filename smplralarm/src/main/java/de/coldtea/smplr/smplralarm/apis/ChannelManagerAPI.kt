@@ -14,6 +14,7 @@ class ChannelManagerAPI {
     internal var showBadge: Boolean = false
     internal var name: String = SMPLR_ALARM_CHANNEL_DEFAULT_NAME
     internal var description: String = SMPLR_ALARM_CHANNEL_DEFAULT_DESCRIPTION
+    internal var channelId: String = SMPLR_ALARM_CHANNEL_DEFAULT_ID
 
     //endregion
 
@@ -35,12 +36,17 @@ class ChannelManagerAPI {
         this.description = description()
     }
 
+    fun channelId(channelId: () -> String) {
+        this.description = channelId()
+    }
+
     //endregion
 
     //region build
 
     fun build(): NotificationChannelItem =
         NotificationChannelItem(
+            channelId,
             importance,
             showBadge,
             name,
@@ -52,6 +58,7 @@ class ChannelManagerAPI {
     //region companion
 
     companion object{
+        internal const val SMPLR_ALARM_CHANNEL_DEFAULT_ID = "channel_id"
         internal const val SMPLR_ALARM_CHANNEL_DEFAULT_NAME = "de.coldtea.smplr.alarm.channel"
         internal const val SMPLR_ALARM_CHANNEL_DEFAULT_DESCRIPTION = "this notification channel is created by SmplrAlarm"
     }
