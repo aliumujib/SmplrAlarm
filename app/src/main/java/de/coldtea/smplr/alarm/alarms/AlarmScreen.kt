@@ -21,6 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +46,8 @@ import java.util.Calendar
 fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
     val context = LocalContext.current
     val defaultTime = Calendar.getInstance().nowPlus(1)
+
+    val scheduleState by alarmViewModel.scheduleState.collectAsState()
 
     // State for UI elements
     var hour by remember { mutableStateOf(defaultTime.first.toString()) }
@@ -132,25 +136,40 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
         val millisInt = millis.toIntOrNull() ?: 0
 
         Button(onClick = {
-            val newAlarmId = alarmViewModel.setFullScreenIntentAlarm(hour.toInt(), minute.toInt(), secondInt, millisInt, weekInfo, context.applicationContext)
-            alarmId = newAlarmId.toString()
-            toastAlarm(context, hour, minute, weekInfo)
+            alarmViewModel.setFullScreenIntentAlarm(
+                hour.toInt(),
+                minute.toInt(),
+                secondInt,
+                millisInt,
+                weekInfo,
+                context.applicationContext
+            )
         }, modifier = buttonModifier) {
             Text("Set FullScreen Intent Alarm")
         }
 
         Button(onClick = {
-            val newAlarmId = alarmViewModel.setNotificationAlarm(hour.toInt(), minute.toInt(), secondInt, millisInt, weekInfo, context.applicationContext)
-            alarmId = newAlarmId.toString()
-            toastAlarm(context, hour, minute, weekInfo)
+            alarmViewModel.setNotificationAlarm(
+                hour.toInt(),
+                minute.toInt(),
+                secondInt,
+                millisInt,
+                weekInfo,
+                context.applicationContext
+            )
         }, modifier = buttonModifier) {
             Text("Set Notification Alarm")
         }
 
         Button(onClick = {
-            val newAlarmId = alarmViewModel.setNoNotificationAlarm(hour.toInt(), minute.toInt(), secondInt, millisInt, weekInfo, context.applicationContext)
-            alarmId = newAlarmId.toString()
-            toastAlarm(context, hour, minute, weekInfo)
+            alarmViewModel.setNoNotificationAlarm(
+                hour.toInt(),
+                minute.toInt(),
+                secondInt,
+                millisInt,
+                weekInfo,
+                context.applicationContext
+            )
         }, modifier = buttonModifier) {
             Text("Set No Notification Alarm")
         }
@@ -166,17 +185,7 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
 
         Button(onClick = {
             if (alarmId.isNotEmpty()) {
-                smplrAlarmUpdate(context.applicationContext) {
-                    requestCode { alarmId.toInt() }
-                    notification {
-                        NotificationItem(
-                            R.drawable.ic_baseline_change_circle_24,
-                            "I am changed",
-                            "I am changed",
-                            "I am changed"
-                        )
-                    }
-                }
+                alarmViewModel.updateNotification(alarmId.toInt(), context.applicationContext)
                 Toast.makeText(context, "Notification for $alarmId updated!", Toast.LENGTH_SHORT).show()
             }
         }, modifier = buttonModifier) {
@@ -191,7 +200,26 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
         }, modifier = buttonModifier) {
             Text("Cancel Alarm")
         }
-        
+
+        LaunchedEffect(scheduleState) {
+            when (val state = scheduleState) {
+                is AlarmViewModel.AlarmScheduleState.Success -> {
+                    alarmId = state.requestCode.toString()
+                    toastAlarm(context, hour, minute, weekDays.toWeekInfo())
+                    alarmViewModel.clearScheduleState()
+                }
+                is AlarmViewModel.AlarmScheduleState.Error -> {
+                    Toast.makeText(
+                        context,
+                        "Failed to schedule alarm: ${state.throwable.message ?: "Unknown error"}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    alarmViewModel.clearScheduleState()
+                }
+                else -> Unit
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
     }
 }

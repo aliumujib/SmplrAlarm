@@ -10,9 +10,8 @@ import de.coldtea.smplr.smplralarm.extensions.getTimeExactForAlarmInMilliseconds
 import de.coldtea.smplr.smplralarm.models.WeekDays
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
 import de.coldtea.smplr.smplralarm.receivers.ActivateAppReceiver
-import de.coldtea.smplr.smplralarm.receivers.AlarmNotification
 import de.coldtea.smplr.smplralarm.receivers.AlarmReceiver
-import de.coldtea.smplr.smplralarm.receivers.SmplrAlarmReceiverObjects
+import de.coldtea.smplr.smplralarm.models.SmplrAlarmReceiverObjects
 import java.util.*
 
 /**
@@ -43,8 +42,7 @@ open class AlarmService(val context: Context) {
         }
 
         if (!hasAlarmPermission) {
-            SmplrAlarmLoggerHolder.logger.e("setAlarm --> Can set alarm, permissions missing")
-            return
+            throw IllegalStateException("setAlarm --> Can not set alarm, permissions missing")
         }
 
         val alarmReceiverIntent = receiverIntent ?: createReceiverPendingIntent(requestCode, 0)

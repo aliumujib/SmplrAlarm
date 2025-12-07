@@ -5,13 +5,12 @@ import android.content.Context
 import android.content.Intent
 import de.coldtea.smplr.smplralarm.extensions.showNotification
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
+import de.coldtea.smplr.smplralarm.models.SmplrAlarmReceiverObjects
 import de.coldtea.smplr.smplralarm.models.launchIo
+import de.coldtea.smplr.smplralarm.models.toIntent
 import de.coldtea.smplr.smplralarm.repository.RoomAlarmStore
 import de.coldtea.smplr.smplralarm.services.AlarmSchedulerImpl
 import de.coldtea.smplr.smplralarm.services.AlarmService
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
@@ -25,18 +24,20 @@ internal class AlarmReceiver : BroadcastReceiver() {
 
         onAlarmReceived(context, requestId)
     }
+
     private fun onAlarmReceived(context: Context, requestId: Int) {
         runCatching {
             SmplrAlarmLoggerHolder.logger.v("onReceive --> $requestId")
 
-            if (requestId == -1) return
+            if (requestId == -1) throw IllegalArgumentException("onAlarmReceived: alarm requestId $requestId is invalid")
+
 
             val store = RoomAlarmStore(context)
             val scheduler = AlarmSchedulerImpl(AlarmService(context), store)
 
             launchIo {
                 runCatching {
-                    val definition = store.get(requestId) ?: return@launchIo
+                    val definition = store.get(requestId) ?: throw IllegalArgumentException("onAlarmReceived: alarm with requestId $requestId is not found")
 
                     val config = definition.notificationConfig
                     val channel = config?.channel
@@ -55,6 +56,8 @@ internal class AlarmReceiver : BroadcastReceiver() {
                             alarmReceivedIntent = alarmReceivedIntent,
                             fullScreenIntent = fullScreenIntent,
                         )
+                    } else {
+                        throw IllegalArgumentException("onAlarmReceived: notification config is not available $channel $notification")
                     }
 
                     if (definition.weekdays.isEmpty()) {
@@ -66,19 +69,15 @@ internal class AlarmReceiver : BroadcastReceiver() {
                         scheduler.rescheduleTomorrow(definition)
                     }
                 }.onFailure { throwable ->
-                    SmplrAlarmLoggerHolder.logger.e("updateRepeatingAlarm failed: ${throwable.message}", throwable)
+                    SmplrAlarmLoggerHolder.logger.e(
+                        "updateRepeatingAlarm failed: ${throwable.message}",
+                        throwable
+                    )
                 }
             }
         }.onFailure { throwable ->
             SmplrAlarmLoggerHolder.logger.e("onReceive failed: ${throwable.message}", throwable)
         }
-    }
-
-    private fun Calendar.dateTime(): Pair<String, String> {
-        val sdfDate = SimpleDateFormat("dd/M/yyyy", Locale.getDefault())
-        val sdfTime = SimpleDateFormat("hh:mm:ss", Locale.getDefault())
-
-        return sdfDate.format(time) to sdfTime.format(time)
     }
 
     companion object {

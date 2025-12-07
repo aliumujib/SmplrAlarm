@@ -10,6 +10,7 @@ import de.coldtea.smplr.alarm.alarms.AlarmViewModel.Companion.ACTION_SNOOZE
 import de.coldtea.smplr.alarm.alarms.AlarmViewModel.Companion.HOUR
 import de.coldtea.smplr.alarm.alarms.AlarmViewModel.Companion.MINUTE
 import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI.Companion.SMPLR_ALARM_NOTIFICATION_ID
+import de.coldtea.smplr.smplralarm.models.launchIo
 import de.coldtea.smplr.smplralarm.smplrAlarmSet
 import timber.log.Timber
 import java.util.*
@@ -25,9 +26,11 @@ class ActionReceiver: BroadcastReceiver() {
 
             notificationManager.cancel(notificationId)
 
-            smplrAlarmSet(context){
-                hour { updatedTime.first }
-                min { updatedTime.second }
+            launchIo {
+                smplrAlarmSet(context){
+                    hour { updatedTime.first }
+                    min { updatedTime.second }
+                }
             }
         }
         if (intent.action == ACTION_DISMISS){

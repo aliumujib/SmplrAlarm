@@ -1,11 +1,7 @@
-package de.coldtea.smplr.smplralarm.receivers
+package de.coldtea.smplr.smplralarm.models
 
 import android.content.Context
 import android.content.Intent
-import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
-import de.coldtea.smplr.smplralarm.models.NotificationItem
-import de.coldtea.smplr.smplralarm.models.NotificationTargetDescriptor
-import de.coldtea.smplr.smplralarm.models.WeekDays
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
@@ -14,8 +10,6 @@ import de.coldtea.smplr.smplralarm.models.WeekDays
 internal class SmplrAlarmReceiverObjects {
     companion object {
         internal const val SMPLR_ALARM_RECEIVER_INTENT_ID = "smplr_alarm_receiver_intent_id"
-
-        internal var alarmNotification: MutableList<AlarmNotification> = mutableListOf()
     }
 }
 
@@ -52,4 +46,76 @@ internal fun NotificationTargetDescriptor.toIntent(context: Context): Intent {
     }
 
     return intent
+}
+
+ fun screenTargetFromIntent(
+    intent: Intent
+): NotificationTargetDescriptor.ScreenTarget {
+    val component = requireNotNull(intent.component) {
+        "Intent must have an explicit component to build a ScreenTarget"
+    }
+
+    val extras = intent.extras?.let { bundle ->
+        val result = mutableMapOf<String, String>()
+        for (key in bundle.keySet()) {
+            val value = bundle.get(key)
+            if (value != null) result[key] = value.toString()
+        }
+        result.toMap()
+    } ?: emptyMap()
+
+    return NotificationTargetDescriptor.ScreenTarget(
+        packageName = component.packageName,
+        activityClassName = component.className,
+        action = intent.action,
+        extras = extras,
+    )
+}
+
+ fun serviceTargetFromIntent(
+    intent: Intent
+): NotificationTargetDescriptor.ServiceTarget {
+    val component = requireNotNull(intent.component) {
+        "Intent must have an explicit component to build a ServiceTarget"
+    }
+
+    val extras = intent.extras?.let { bundle ->
+        val result = mutableMapOf<String, String>()
+        for (key in bundle.keySet()) {
+            val value = bundle.get(key)
+            if (value != null) result[key] = value.toString()
+        }
+        result.toMap()
+    } ?: emptyMap()
+
+    return NotificationTargetDescriptor.ServiceTarget(
+        packageName = component.packageName,
+        serviceClassName = component.className,
+        action = intent.action,
+        extras = extras,
+    )
+}
+
+ fun broadcastTargetFromIntent(
+    intent: Intent
+): NotificationTargetDescriptor.BroadcastTarget {
+    val component = requireNotNull(intent.component) {
+        "Intent must have an explicit component to build a BroadcastTarget"
+    }
+
+    val extras = intent.extras?.let { bundle ->
+        val result = mutableMapOf<String, String>()
+        for (key in bundle.keySet()) {
+            val value = bundle.get(key)
+            if (value != null) result[key] = value.toString()
+        }
+        result.toMap()
+    } ?: emptyMap()
+
+    return NotificationTargetDescriptor.BroadcastTarget(
+        packageName = component.packageName,
+        receiverClassName = component.className,
+        action = intent.action,
+        extras = extras,
+    )
 }

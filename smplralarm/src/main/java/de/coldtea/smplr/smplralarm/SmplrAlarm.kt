@@ -70,14 +70,14 @@ import de.coldtea.smplr.smplralarm.models.NotificationItem
  * - alarmReceivedIntent : The action intent which is executed when the alarm goes off, this can be listened from the app.
  * - info pairs : pairs of strings to pass extra information
  */
-fun smplrAlarmSet(context: Context, lambda: SmplrAlarmAPI.() -> Unit): Int =
+suspend fun smplrAlarmSet(context: Context, lambda: SmplrAlarmAPI.() -> Unit): Int =
     SmplrAlarmAPI(context).apply(lambda).setAlarm()
 
 /**
  * API interface for cancelling the alarm.
  * Besides the context in the constructor, it only requires a request code.
  */
-fun smplrAlarmCancel(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
+suspend fun smplrAlarmCancel(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
     SmplrAlarmAPI(context).apply(lambda).removeAlarm()
 
 /**
@@ -87,7 +87,7 @@ fun smplrAlarmCancel(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
  * this function has been created. It simply checks everything in the database against android intent
  * manager, and creates the alarm again based on the information kept in the database.
  */
-fun smplrAlarmRenewMissingAlarms(context: Context) =
+suspend fun smplrAlarmRenewMissingAlarms(context: Context) =
     SmplrAlarmAPI(context).renewMissingAlarms()
 
 /**
@@ -102,7 +102,7 @@ fun smplrAlarmRenewMissingAlarms(context: Context) =
  * - info pairs
  * - notifications
  */
-fun smplrAlarmUpdate(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
+suspend fun smplrAlarmUpdate(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
     SmplrAlarmAPI(context).apply(lambda).updateAlarm()
 
 /**

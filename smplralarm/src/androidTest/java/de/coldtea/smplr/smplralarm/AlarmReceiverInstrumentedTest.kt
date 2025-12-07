@@ -1,13 +1,12 @@
 package de.coldtea.smplr.smplralarm
 
-import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import de.coldtea.smplr.smplralarm.models.AlarmDefinition
 import de.coldtea.smplr.smplralarm.models.NotificationConfig
 import de.coldtea.smplr.smplralarm.models.WeekDays
 import de.coldtea.smplr.smplralarm.receivers.AlarmReceiver
-import de.coldtea.smplr.smplralarm.receivers.SmplrAlarmReceiverObjects
+import de.coldtea.smplr.smplralarm.models.SmplrAlarmReceiverObjects
 import de.coldtea.smplr.smplralarm.repository.RoomAlarmStore
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.delay

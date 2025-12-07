@@ -122,15 +122,6 @@ interface AlarmScheduler {
 }
 
 /**
- * Observer for alarm list changes. Default implementation will continue to
- * produce JSON for backwards compatibility, but advanced consumers can
- * observe strongly-typed definitions instead.
- */
-interface AlarmListObserver {
-    fun onAlarmListChanged(alarms: List<AlarmDefinition>)
-}
-
-/**
  * Abstraction for generating alarm IDs, so callers that require stable or
  * externally-defined request codes can plug in their own strategy.
  */

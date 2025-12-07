@@ -36,5 +36,5 @@ fun SmplrAlarmSetDispatchers(dispatchers: SmplrAlarmDispatchers) {
  * Convenience helper for launching short-lived IO work on the library's
  * configured IO dispatcher.
  */
-internal fun launchIo(block: suspend CoroutineScope.() -> Unit) =
+fun launchIo(block: suspend CoroutineScope.() -> Unit) =
     CoroutineScope(SmplrAlarmDispatchersHolder.dispatchers.io).launch(block = block)

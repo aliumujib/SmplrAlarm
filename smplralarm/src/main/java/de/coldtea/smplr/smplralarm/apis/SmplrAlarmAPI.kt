@@ -2,66 +2,35 @@ package de.coldtea.smplr.smplralarm.apis
 
 import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
-import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
-import de.coldtea.smplr.smplralarm.models.NotificationItem
-import de.coldtea.smplr.smplralarm.models.AlarmStore
-import de.coldtea.smplr.smplralarm.models.AlarmScheduler
-import de.coldtea.smplr.smplralarm.models.AlarmListObserver
-import de.coldtea.smplr.smplralarm.models.AlarmIdGenerator
-import de.coldtea.smplr.smplralarm.models.DefaultAlarmIdGenerator
 import de.coldtea.smplr.smplralarm.models.AlarmDefinition
+import de.coldtea.smplr.smplralarm.models.AlarmIdGenerator
+import de.coldtea.smplr.smplralarm.models.AlarmScheduler
+import de.coldtea.smplr.smplralarm.models.AlarmStore
+import de.coldtea.smplr.smplralarm.models.DefaultAlarmIdGenerator
+import de.coldtea.smplr.smplralarm.models.DefaultSmplrAlarmLogger
+import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
 import de.coldtea.smplr.smplralarm.models.NotificationConfig
+import de.coldtea.smplr.smplralarm.models.NotificationItem
 import de.coldtea.smplr.smplralarm.models.NotificationTargetDescriptor
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmLogger
-import de.coldtea.smplr.smplralarm.models.DefaultSmplrAlarmLogger
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
+import de.coldtea.smplr.smplralarm.models.SmplrAlarmReceiverObjects.Companion.SMPLR_ALARM_RECEIVER_INTENT_ID
 import de.coldtea.smplr.smplralarm.models.WeekDays
 import de.coldtea.smplr.smplralarm.receivers.AlarmReceiver
-import de.coldtea.smplr.smplralarm.receivers.SmplrAlarmReceiverObjects.Companion.SMPLR_ALARM_RECEIVER_INTENT_ID
-import de.coldtea.smplr.smplralarm.services.AlarmService
-import de.coldtea.smplr.smplralarm.services.AlarmSchedulerImpl
 import de.coldtea.smplr.smplralarm.repository.RoomAlarmStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import de.coldtea.smplr.smplralarm.models.launchIo
-import kotlin.math.absoluteValue
+import de.coldtea.smplr.smplralarm.services.AlarmSchedulerImpl
+import de.coldtea.smplr.smplralarm.services.AlarmService
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
  */
-class SmplrAlarmAPI(val context: Context) {
+class SmplrAlarmAPI {
 
-    /**
-     * New constructor that accepts the abstraction layer types introduced in
-     * the refactor plan. Callers can override the default store/scheduler
-     * with their own implementations.
-     */
-    constructor(
-        context: Context,
-        store: AlarmStore,
-        scheduler: AlarmScheduler,
-        observer: AlarmListObserver? = null,
-        idGenerator: AlarmIdGenerator = DefaultAlarmIdGenerator,
-        logger: SmplrAlarmLogger = DefaultSmplrAlarmLogger,
-    ) : this(context) {
-        this.store = store
-        this.scheduler = scheduler
-        this.observer = observer
-        this.idGenerator = idGenerator
-        this.logger = logger
-        SmplrAlarmLoggerHolder.logger = logger
-    }
-
-    //region properties
-
-    // New abstraction layer fields.
-    private var store: AlarmStore = RoomAlarmStore(context)
-    private var scheduler: AlarmScheduler = AlarmSchedulerImpl(AlarmService(context), store)
-    private var observer: AlarmListObserver? = null
-    private var idGenerator: AlarmIdGenerator = DefaultAlarmIdGenerator
-    private var logger: SmplrAlarmLogger = DefaultSmplrAlarmLogger
+    private val store: AlarmStore
+    private val scheduler: AlarmScheduler
+    private val idGenerator: AlarmIdGenerator
+    private val logger: SmplrAlarmLogger
+    private val context: Context
 
     private var hour = -1
     private var min = -1
@@ -91,11 +60,29 @@ class SmplrAlarmAPI(val context: Context) {
     private val isAlarmValid: Boolean
         get() =
             if (hour == -1 && min == -1) true
-        else hour > -1 && hour < 24 && min > -1 && min < 60
+            else hour > -1 && hour < 24 && min > -1 && min < 60
 
-    //endregion
 
-    // region DSL setters
+    /**
+     * New constructor that accepts the abstraction layer types introduced in
+     * the refactor plan. Callers can override the default store/scheduler
+     * with their own implementations.
+     */
+    constructor(
+        context: Context,
+        store: AlarmStore = RoomAlarmStore(context),
+        idGenerator: AlarmIdGenerator = DefaultAlarmIdGenerator,
+        logger: SmplrAlarmLogger = DefaultSmplrAlarmLogger,
+        scheduler: AlarmScheduler = AlarmSchedulerImpl(AlarmService(context), store),
+    ) {
+        this.context = context
+        this.store = store
+        this.scheduler = scheduler
+        this.idGenerator = idGenerator
+        this.logger = logger
+        SmplrAlarmLoggerHolder.logger = logger
+    }
+
     fun hour(hour: () -> Int) {
         this.hour = hour()
     }
@@ -114,39 +101,6 @@ class SmplrAlarmAPI(val context: Context) {
 
     fun requestCode(requestCode: () -> Int) {
         this.requestCode = requestCode()
-    }
-
-    fun contentIntent(contentIntent: () -> Intent) {
-        val intent = contentIntent()
-        val component = intent.component ?: return
-        contentTarget = NotificationTargetDescriptor.ScreenTarget(
-            packageName = component.packageName,
-            activityClassName = component.className,
-            action = intent.action,
-            extras = intent.extrasToMap(),
-        )
-    }
-
-    fun receiverIntent(receiverIntent: () -> Intent) {
-        val intent = receiverIntent()
-        val component = intent.component ?: return
-        fullScreenTarget = NotificationTargetDescriptor.ScreenTarget(
-            packageName = component.packageName,
-            activityClassName = component.className,
-            action = intent.action,
-            extras = intent.extrasToMap(),
-        )
-    }
-
-    fun alarmReceivedIntent(alarmReceivedIntent: () -> Intent) {
-        val intent = alarmReceivedIntent()
-        val component = intent.component ?: return
-        alarmReceivedTarget = NotificationTargetDescriptor.BroadcastTarget(
-            packageName = component.packageName,
-            receiverClassName = component.className,
-            action = intent.action,
-            extras = intent.extrasToMap(),
-        )
     }
 
     fun notificationChannel(notificationChannel: () -> NotificationChannelItem) {
@@ -181,19 +135,15 @@ class SmplrAlarmAPI(val context: Context) {
         this.infoPairs = infoPairs()
     }
 
-    // endregion
-
-    // region functionality
-
-    internal fun setAlarm(): Int {
+    internal suspend fun setAlarm(): Int {
         if (isAlarmValid.not()) {
-            logger.w("updateRepeatingAlarm: Your time setup is not valid, please pick a valid time! ")
-            return -1
+            throw IllegalArgumentException("updateRepeatingAlarm: Your time setup is not valid, please pick a valid time! ")
         }
 
-        // Determine the request code for this operation. If the caller
-        // provided one via the DSL, respect it; otherwise generate a new
-        // code via the injected AlarmIdGenerator.
+        if (notification != null && notificationChannel == null) {
+            throw IllegalStateException("SmplrAlarm: notificationChannel{} must be provided when setting a notification{}.")
+        }
+
         val finalRequestCode = if (requestCode == -1) {
             idGenerator.generateId()
         } else {
@@ -202,7 +152,6 @@ class SmplrAlarmAPI(val context: Context) {
         requestCode = finalRequestCode
         logger.v("setAlarm: $requestCode -- $hour:$min")
 
-        // Build new AlarmDefinition for the opinionated storage path.
         val definition = AlarmDefinition(
             id = finalRequestCode,
             hour = hour,
@@ -221,102 +170,84 @@ class SmplrAlarmAPI(val context: Context) {
             ),
         )
 
-        launchIo {
-            // New path: store definition in the dedicated AlarmStore.
-            store.insert(definition)
-            observer?.onAlarmListChanged(store.getAll())
-        }
+        store.insert(definition)
 
-        // New path: schedule via AlarmScheduler abstraction.
         scheduler.schedule(finalRequestCode, hour, min, second, weekdays)
 
-        // Legacy path: keep current AlarmService behavior.
-        alarmService.setAlarm(finalRequestCode, hour, min, weekdays, second = second, millis = millis)
+        alarmService.setAlarm(
+            finalRequestCode,
+            hour,
+            min,
+            weekdays,
+            second = second,
+            millis = millis
+        )
 
         return finalRequestCode
     }
 
-    internal fun renewMissingAlarms() = launchIo {
-        runCatching {
-            val all = store.getAll()
-            all.filter { it.isActive && !alarmService.alarmExist(it.id) }
-                .forEach { definition ->
-                    scheduler.renew(definition)
-                }
-        }.onFailure { throwable ->
-            logger.e("renewMissingAlarms failed: ${throwable.message}", throwable)
-        }
+    internal suspend fun renewMissingAlarms() {
+        val all = store.getAll()
+        all.filter { it.isActive && !alarmService.alarmExist(it.id) }
+            .forEach { definition ->
+                scheduler.renew(definition)
+            }
     }
 
-    internal fun updateAlarm() {
-        if (requestCode == -1) return
+    internal suspend fun updateAlarm() {
+        if (requestCode == -1) {
+            throw IllegalArgumentException("updateRepeatingAlarm: Your requestCode, please supply a valid code")
+        }
+
         if (isAlarmValid.not()) {
-            logger.w("updateRepeatingAlarm: Your time setup is not valid, please pick a valid time! ")
-            return
+            throw IllegalArgumentException("updateRepeatingAlarm: Your time setup is not valid, please pick a valid time! ")
+        }
+
+        if (notification != null && notificationChannel == null) {
+            throw IllegalStateException("SmplrAlarm: notificationChannel{} must be provided when updating a notification{}.")
         }
 
         alarmService.cancelAlarm(requestCode)
         val updatedActivation = isActive
 
-        launchIo {
-            runCatching {
-                val current = store.get(requestCode) ?: return@launchIo
+        val current = store.get(requestCode)
+            ?: throw IllegalArgumentException("Alarm with request code $requestCode not found")
 
-                val updatedHour = if (hour == -1) current.hour else hour
-                val updatedMinute = if (min == -1) current.minute else min
+        val updatedHour = if (hour == -1) current.hour else hour
+        val updatedMinute = if (min == -1) current.minute else min
 
-                val updated = current.copy(
-                    hour = updatedHour,
-                    minute = updatedMinute,
-                    weekdays = weekdays.ifEmpty { current.weekdays },
-                    isActive = updatedActivation,
-                    metadata = infoPairs?.toMap() ?: current.metadata,
-                )
+        val updated = current.copy(
+            hour = updatedHour,
+            minute = updatedMinute,
+            weekdays = weekdays.ifEmpty { current.weekdays },
+            isActive = updatedActivation,
+            metadata = infoPairs?.toMap() ?: current.metadata,
+        )
 
-                store.update(updated)
+        store.update(updated)
 
-                if (updatedActivation) {
-                    scheduler.schedule(
-                        id = updated.id,
-                        hour = updated.hour,
-                        minute = updated.minute,
-                        second = updated.second,
-                        weekDays = updated.weekdays,
-                    )
-                } else {
-                    scheduler.cancel(updated.id)
-                }
-            }.onFailure { throwable ->
-                logger.e("updateRepeatingAlarm failed: ${throwable.message}", throwable)
-            }
+        if (updatedActivation) {
+            scheduler.schedule(
+                id = updated.id,
+                hour = updated.hour,
+                minute = updated.minute,
+                second = updated.second,
+                weekDays = updated.weekdays,
+            )
+        } else {
+            scheduler.cancel(updated.id)
         }
     }
 
-    internal fun removeAlarm() {
+    internal suspend fun removeAlarm() {
+        if (requestCode == -1) {
+            throw IllegalArgumentException("updateRepeatingAlarm: Your requestCode, please supply a valid code")
+        }
+
         alarmService.cancelAlarm(requestCode)
 
-        CoroutineScope(Dispatchers.IO).launch {
-            runCatching {
-                store.delete(requestCode)
-                scheduler.cancel(requestCode)
-            }.onFailure { throwable ->
-                logger.e("removeAlarm failed: ${throwable.message}", throwable)
-            }
-        }
-    }
-
-    // endregion
-
-    private fun Intent.extrasToMap(): Map<String, String> {
-        val extrasBundle = extras ?: return emptyMap()
-        val result = mutableMapOf<String, String>()
-        for (key in extrasBundle.keySet()) {
-            val value = extrasBundle.get(key)
-            if (value != null) {
-                result[key] = value.toString()
-            }
-        }
-        return result
+        store.delete(requestCode)
+        scheduler.cancel(requestCode)
     }
 
     companion object {

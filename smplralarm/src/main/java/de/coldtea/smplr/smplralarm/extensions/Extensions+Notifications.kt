@@ -13,6 +13,7 @@ import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI.Companion.SMPLR_ALARM_REQU
 import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
 import de.coldtea.smplr.smplralarm.models.NotificationItem
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
+import de.coldtea.smplr.smplralarm.models.toIntent
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
@@ -69,11 +70,12 @@ internal fun Context.showNotification(
                     setAutoCancel(autoCancel != false)
                     setAllowSystemGeneratedContextualActions(false)
 
-                    if (notificationItem.notificationDismissedIntent != null) {
+                    notificationItem.dismissTarget?.let { target ->
+                        val intent = target.toIntent(this@showNotification)
                         setDeleteIntent(
                             this@showNotification.getBroadcast(
                                 requestId,
-                                requireNotNull(notificationItem.notificationDismissedIntent)
+                                intent
                             )
                         )
                     }
@@ -91,23 +93,33 @@ internal fun Context.showNotification(
                         )
                     }
 
-                    if (notificationItem.firstButtonText != null && notificationItem.firstButtonIntent != null) addAction(
-                        0,
-                        notificationItem.firstButtonText,
-                        this@showNotification.getBroadcast(
-                            requestId,
-                            requireNotNull(notificationItem.firstButtonIntent)
-                        )
-                    )
+                    notificationItem.firstButtonText?.let { text ->
+                        notificationItem.firstButtonTarget?.let { target ->
+                            val intent = target.toIntent(this@showNotification)
+                            addAction(
+                                0,
+                                text,
+                                this@showNotification.getBroadcast(
+                                    requestId,
+                                    intent,
+                                )
+                            )
+                        }
+                    }
 
-                    if (notificationItem.secondButtonText != null && notificationItem.secondButtonIntent != null) addAction(
-                        0,
-                        notificationItem.secondButtonText,
-                        this@showNotification.getBroadcast(
-                            requestId,
-                            requireNotNull(notificationItem.secondButtonIntent)
-                        )
-                    )
+                    notificationItem.secondButtonText?.let { text ->
+                        notificationItem.secondButtonTarget?.let { target ->
+                            val intent = target.toIntent(this@showNotification)
+                            addAction(
+                                0,
+                                text,
+                                this@showNotification.getBroadcast(
+                                    requestId,
+                                    intent,
+                                )
+                            )
+                        }
+                    }
                 }
             }.build()
 
