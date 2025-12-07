@@ -4,7 +4,6 @@ import android.content.Context
 import de.coldtea.smplr.smplralarm.apis.AlarmNotificationAPI
 import de.coldtea.smplr.smplralarm.apis.ChannelManagerAPI
 import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI
-import de.coldtea.smplr.smplralarm.apis.SmplrAlarmListRequestAPI
 import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
 import de.coldtea.smplr.smplralarm.models.NotificationItem
 
@@ -64,7 +63,6 @@ import de.coldtea.smplr.smplralarm.models.NotificationItem
  * - channel: A data item which is used to create an Android Notification Channel. For more detailed information please check out the API interface of the same name
  *
  * Optional arguments
- * - requestAPI: API interface to listen the changes on the database. It returns the list of the alarms in JSON format. For more detailed information please check out --> SmplrAlarmListRequestAPI
  * - weekdays: the days of the week on which the alarm is active. An alarm without this argument set rings only once, other alarms however, repeats until they are canceled. To set this parameter the enum class WeekDays must be used.
  * - isActive: state of the alarm which indicates whether alarm is active or not
  * - intent: The intent which is executed when the notification is tapped.
@@ -106,19 +104,6 @@ fun smplrAlarmRenewMissingAlarms(context: Context) =
  */
 fun smplrAlarmUpdate(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
     SmplrAlarmAPI(context).apply(lambda).updateAlarm()
-
-/**
- * API interface to set a database listener.
- * It requires following lambda function
- *
- * (String) -> Unit)
- *
- * this lambda function receives the alarms in the database as JSON formatted text.
- */
-fun smplrAlarmChangeOrRequestListener(context: Context, lambda:  ((String) -> Unit)) =
-    SmplrAlarmListRequestAPI(context).apply {
-        alarmListChangeOrRequestedListener = lambda
-    }
 
 /**
  * Data item which holds the following information that accapted and/or required by Android Notification channel

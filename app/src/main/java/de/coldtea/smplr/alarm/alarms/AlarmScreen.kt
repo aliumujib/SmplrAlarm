@@ -21,9 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +48,8 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
     // State for UI elements
     var hour by remember { mutableStateOf(defaultTime.first.toString()) }
     var minute by remember { mutableStateOf(defaultTime.second.toString()) }
+    var second by remember { mutableStateOf("0") }
+    var millis by remember { mutableStateOf("0") }
     var alarmId by remember { mutableStateOf("") }
     var isActive by remember { mutableStateOf(true) }
 
@@ -58,13 +58,6 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
             "SUNDAY" to true, "MONDAY" to false, "TUESDAY" to false,
             "WEDNESDAY" to false, "THURSDAY" to false, "FRIDAY" to false, "SATURDAY" to false
         )
-    }
-
-    val alarmListJson by alarmViewModel.alarmListAsJson.observeAsState("")
-
-    // Initialize listener
-    LaunchedEffect(Unit) {
-        alarmViewModel.initAlarmListListener(context.applicationContext)
     }
 
     Column(
@@ -78,7 +71,7 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
         Text("Repeating alarm", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Time Input
+        // Time Input (HH:MM:SS.mmm)
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = hour,
@@ -92,6 +85,22 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
                 value = minute,
                 onValueChange = { minute = it },
                 label = { Text("MM") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.width(80.dp)
+            )
+            Text(":", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(horizontal = 8.dp))
+            OutlinedTextField(
+                value = second,
+                onValueChange = { second = it },
+                label = { Text("SS") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.width(80.dp)
+            )
+            Text(".", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(horizontal = 4.dp))
+            OutlinedTextField(
+                value = millis,
+                onValueChange = { millis = it },
+                label = { Text("ms") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.width(80.dp)
             )
@@ -119,9 +128,11 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
         // Action Buttons
         val buttonModifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
         val weekInfo = weekDays.toWeekInfo()
+        val secondInt = second.toIntOrNull() ?: 0
+        val millisInt = millis.toIntOrNull() ?: 0
 
         Button(onClick = {
-            val newAlarmId = alarmViewModel.setFullScreenIntentAlarm(hour.toInt(), minute.toInt(), weekInfo, context.applicationContext)
+            val newAlarmId = alarmViewModel.setFullScreenIntentAlarm(hour.toInt(), minute.toInt(), secondInt, millisInt, weekInfo, context.applicationContext)
             alarmId = newAlarmId.toString()
             toastAlarm(context, hour, minute, weekInfo)
         }, modifier = buttonModifier) {
@@ -129,7 +140,7 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
         }
 
         Button(onClick = {
-            val newAlarmId = alarmViewModel.setNotificationAlarm(hour.toInt(), minute.toInt(), weekInfo, context.applicationContext)
+            val newAlarmId = alarmViewModel.setNotificationAlarm(hour.toInt(), minute.toInt(), secondInt, millisInt, weekInfo, context.applicationContext)
             alarmId = newAlarmId.toString()
             toastAlarm(context, hour, minute, weekInfo)
         }, modifier = buttonModifier) {
@@ -137,7 +148,7 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
         }
 
         Button(onClick = {
-            val newAlarmId = alarmViewModel.setNoNotificationAlarm(hour.toInt(), minute.toInt(), weekInfo, context.applicationContext)
+            val newAlarmId = alarmViewModel.setNoNotificationAlarm(hour.toInt(), minute.toInt(), secondInt, millisInt, weekInfo, context.applicationContext)
             alarmId = newAlarmId.toString()
             toastAlarm(context, hour, minute, weekInfo)
         }, modifier = buttonModifier) {
@@ -182,19 +193,6 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
         }
         
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Active Alarms (JSON)", style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Button(onClick = { alarmViewModel.requestAlarmList() }, modifier = buttonModifier) {
-            Text("Refresh Alarm List")
-        }
-
-        Text(
-            text = alarmListJson,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        )
     }
 }
 

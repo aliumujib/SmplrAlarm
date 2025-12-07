@@ -1,13 +1,11 @@
 package de.coldtea.smplr.smplralarm.receivers
 
+import android.content.Context
 import android.content.Intent
-import de.coldtea.smplr.smplralarm.extensions.activeDaysAsJsonString
 import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
 import de.coldtea.smplr.smplralarm.models.NotificationItem
+import de.coldtea.smplr.smplralarm.models.NotificationTargetDescriptor
 import de.coldtea.smplr.smplralarm.models.WeekDays
-import de.coldtea.smplr.smplralarm.repository.entity.AlarmNotificationEntity
-import de.coldtea.smplr.smplralarm.repository.entity.NotificationChannelEntity
-import de.coldtea.smplr.smplralarm.repository.entity.NotificationEntity
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
@@ -35,35 +33,23 @@ data class AlarmNotification(
     val infoPairs: String
 )
 
-internal fun AlarmNotification.extractAlarmNotificationEntity(): AlarmNotificationEntity =
-    AlarmNotificationEntity(
-        alarmNotificationId,
-        hour,
-        min,
-        weekDays.activeDaysAsJsonString(),
-        isActive,
-        infoPairs
-    )
+internal fun NotificationTargetDescriptor.toIntent(context: Context): Intent {
+    val intent = when (this) {
+        is NotificationTargetDescriptor.ScreenTarget ->
+            Intent().setClassName(packageName, activityClassName)
+        is NotificationTargetDescriptor.ServiceTarget ->
+            Intent().setClassName(packageName, serviceClassName)
+        is NotificationTargetDescriptor.BroadcastTarget ->
+            Intent().setClassName(packageName, receiverClassName)
+    }
 
-internal fun AlarmNotification.extractNotificationEntity(fkAlarmNotificationId: Int): NotificationEntity =
-    NotificationEntity(
-        0,
-        fkAlarmNotificationId,
-        notificationItem?.smallIcon?:0,
-        notificationItem?.title.orEmpty(),
-        notificationItem?.message.orEmpty(),
-        notificationItem?.bigText.orEmpty(),
-        notificationItem?.autoCancel?:false,
-        notificationItem?.firstButtonText.orEmpty(),
-        notificationItem?.secondButtonText.orEmpty()
-    )
+    if (action != null) {
+        intent.action = action
+    }
 
-internal fun AlarmNotification.extractNotificationChannelEntity(fkAlarmNotificationId: Int): NotificationChannelEntity =
-    NotificationChannelEntity(
-        0,
-        fkAlarmNotificationId,
-        notificationChannelItem?.importance?:0,
-        notificationChannelItem?.showBadge?:false,
-        notificationChannelItem?.name.orEmpty(),
-        notificationChannelItem?.description.orEmpty()
-    )
+    extras.forEach { (key, value) ->
+        intent.putExtra(key, value)
+    }
+
+    return intent
+}

@@ -2,8 +2,6 @@ package de.coldtea.smplr.alarm.alarms
 
 import android.content.Context
 import android.content.Intent
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import de.coldtea.smplr.alarm.MainActivity
 import de.coldtea.smplr.alarm.R
@@ -12,26 +10,14 @@ import de.coldtea.smplr.alarm.lockscreenalarm.ActivityLockScreenAlarm
 import de.coldtea.smplr.alarm.receiver.ActionReceiver
 import de.coldtea.smplr.alarm.receiver.AlarmBroadcastReceiver
 import de.coldtea.smplr.smplralarm.*
-import de.coldtea.smplr.smplralarm.apis.SmplrAlarmListRequestAPI
 
 class AlarmViewModel : ViewModel() {
-
-    lateinit var smplrAlarmListRequestAPI: SmplrAlarmListRequestAPI
-
-    private val _alarmListAsJson = MutableLiveData<String>()
-    val alarmListAsJson: LiveData<String>
-        get() = _alarmListAsJson
-
-    fun initAlarmListListener(applicationContext: Context) =
-        smplrAlarmChangeOrRequestListener(applicationContext) {
-            _alarmListAsJson.postValue(it)
-        }.also {
-            smplrAlarmListRequestAPI = it
-        }
 
     fun setFullScreenIntentAlarm(
         hour: Int,
         minute: Int,
+        second: Int,
+        millis: Int,
         weekInfo: WeekInfo,
         applicationContext: Context
     ): Int {
@@ -69,6 +55,8 @@ class AlarmViewModel : ViewModel() {
         return smplrAlarmSet(applicationContext) {
             hour { hour }
             min { minute }
+            second { second }
+            millis { millis }
             contentIntent { onClickShortcutIntent }
             receiverIntent { fullScreenIntent }
             alarmReceivedIntent { alarmReceivedIntent }
@@ -108,6 +96,8 @@ class AlarmViewModel : ViewModel() {
     fun setNotificationAlarm(
         hour: Int,
         minute: Int,
+        second: Int,
+        millis: Int,
         weekInfo: WeekInfo,
         applicationContext: Context
     ): Int {
@@ -153,6 +143,8 @@ class AlarmViewModel : ViewModel() {
     fun setNoNotificationAlarm(
         hour: Int,
         minute: Int,
+        second: Int,
+        millis: Int,
         weekInfo: WeekInfo,
         applicationContext: Context
     ): Int {
@@ -217,8 +209,6 @@ class AlarmViewModel : ViewModel() {
             isActive { isActive }
         }
     }
-
-    fun requestAlarmList() = smplrAlarmListRequestAPI.requestAlarmList()
 
     fun cancelAlarm(requestCode: Int, applicationContext: Context) =
         smplrAlarmCancel(applicationContext) {

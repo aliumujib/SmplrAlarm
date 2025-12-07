@@ -4,8 +4,11 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import androidx.core.content.getSystemService
 import de.coldtea.smplr.smplralarm.extensions.getTimeExactForAlarmInMilliseconds
 import de.coldtea.smplr.smplralarm.models.WeekDays
+import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
 import de.coldtea.smplr.smplralarm.receivers.ActivateAppReceiver
 import de.coldtea.smplr.smplralarm.receivers.AlarmNotification
 import de.coldtea.smplr.smplralarm.receivers.AlarmReceiver
@@ -15,7 +18,7 @@ import java.util.*
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
  */
-class AlarmService(val context: Context) {
+open class AlarmService(val context: Context) {
 
     private val alarmManager: AlarmManager by lazy {
         context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -24,17 +27,30 @@ class AlarmService(val context: Context) {
     private val calendar
         get() = Calendar.getInstance()
 
-    fun setAlarm(
+    open fun setAlarm(
         requestCode: Int,
         hour: Int,
         min: Int,
         weekDays: List<WeekDays>,
+        second: Int = 0,
+        millis: Int = 0,
         receiverIntent: PendingIntent? = null
     ) {
+        val hasAlarmPermission = if (Build.VERSION.SDK_INT >= (Build.VERSION_CODES.S)) {
+            context.getSystemService<AlarmManager>()?.canScheduleExactAlarms() == true
+        } else {
+            true
+        }
+
+        if (!hasAlarmPermission) {
+            SmplrAlarmLoggerHolder.logger.e("setAlarm --> Can set alarm, permissions missing")
+            return
+        }
+
         val alarmReceiverIntent = receiverIntent ?: createReceiverPendingIntent(requestCode, 0)
         val openAppIntent = createOpenAppPendingIntent(requestCode, 0)
         val exactAlarmTime =
-            calendar.getTimeExactForAlarmInMilliseconds(hour, min, weekDays)
+            calendar.getTimeExactForAlarmInMilliseconds(hour, min, second, millis, weekDays)
 
         val alarmClockInfo = AlarmManager.AlarmClockInfo(
             exactAlarmTime,
@@ -45,50 +61,6 @@ class AlarmService(val context: Context) {
             alarmClockInfo,
             alarmReceiverIntent
         )
-    }
-
-    fun setAlarm(
-        alarmNotification: AlarmNotification
-    ) {
-        setAlarm(
-            requestCode = alarmNotification.alarmNotificationId,
-            hour = alarmNotification.hour,
-            min = alarmNotification.min,
-            weekDays = alarmNotification.weekDays
-        )
-    }
-
-    fun resetAlarmTomorrow(alarmNotification: AlarmNotification) {
-        val pendingIntent = getReceiverPendingIntent(
-            alarmNotification.alarmNotificationId,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        setAlarm(
-            requestCode = alarmNotification.alarmNotificationId,
-            hour = alarmNotification.hour,
-            min = alarmNotification.min,
-            weekDays = alarmNotification.weekDays,
-            receiverIntent = pendingIntent
-        )
-    }
-
-    fun renewAlarm(alarmNotification: AlarmNotification) {
-        cancelAlarm(alarmNotification.alarmNotificationId)
-
-        val pendingIntent = createReceiverPendingIntent(
-            alarmNotification.alarmNotificationId,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        setAlarm(
-            requestCode = alarmNotification.alarmNotificationId,
-            hour = alarmNotification.hour,
-            min = alarmNotification.min,
-            weekDays = alarmNotification.weekDays,
-            receiverIntent = pendingIntent
-        )
-
     }
 
     fun alarmExist(requestCode: Int): Boolean =

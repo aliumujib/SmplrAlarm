@@ -3,9 +3,9 @@ package de.coldtea.smplr.alarm
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
 import androidx.core.view.WindowCompat
 import de.coldtea.smplr.alarm.alarms.AlarmScreen
+import de.coldtea.smplr.alarm.ui.theme.SmplrAlarmTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
-            MaterialTheme {
+            SmplrAlarmTheme {
                 AlarmScreen()
             }
         }
