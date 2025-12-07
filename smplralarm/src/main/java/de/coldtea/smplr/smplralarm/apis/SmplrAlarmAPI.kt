@@ -2,6 +2,7 @@ package de.coldtea.smplr.smplralarm.apis
 
 import android.app.PendingIntent
 import android.content.Context
+import de.coldtea.smplr.smplralarm.SmplrAlarmEnvironment
 import de.coldtea.smplr.smplralarm.models.AlarmDefinition
 import de.coldtea.smplr.smplralarm.models.AlarmIdGenerator
 import de.coldtea.smplr.smplralarm.models.AlarmScheduler
@@ -58,15 +59,50 @@ class SmplrAlarmAPI {
     private var infoPairs: List<Pair<String, String>>? = null
 
     private val isAlarmValid: Boolean
-        get() =
-            if (hour == -1 && min == -1) true
-            else hour > -1 && hour < 24 && min > -1 && min < 60
+        get() {
+            // When both hour and min are left at their default (-1), we
+            // treat this as "no-op" for update flows and consider it
+            // logically valid. Log this explicitly for debugging.
+            if (hour == -1 && min == -1) {
+                logger.v("isAlarmValid: hour and min are both -1; treating as valid (no-op time update)")
+                return true
+            }
+
+            val isHourValid = hour in 0..23
+            val isMinValid = min in 0..59
+            val valid = isHourValid && isMinValid
+
+            if (!valid) {
+                logger.e(
+                    "isAlarmValid: INVALID time configuration: hour=$hour (valid=$isHourValid), " +
+                        "min=$min (valid=$isMinValid)"
+                )
+            } else {
+                logger.v("isAlarmValid: valid time configuration: hour=$hour, min=$min")
+            }
+
+            return valid
+        }
 
 
     /**
-     * New constructor that accepts the abstraction layer types introduced in
-     * the refactor plan. Callers can override the default store/scheduler
-     * with their own implementations.
+     * Convenience constructor that resolves all dependencies from the
+     * global [SmplrAlarmEnvironment]. This is the preferred entry point
+     * for most callers and is what the top-level DSL functions use.
+     */
+    constructor(context: Context) : this(
+        context = context,
+        store = SmplrAlarmEnvironment.current(context).storeFactory(context),
+        idGenerator = SmplrAlarmEnvironment.current(context).idGenerator,
+        logger = SmplrAlarmEnvironment.current(context).logger,
+        scheduler = SmplrAlarmEnvironment.current(context)
+            .schedulerFactory(context),
+    )
+
+    /**
+     * Constructor that accepts the abstraction layer types directly. This
+     * remains available for advanced callers that want full control without
+     * going through [SmplrAlarmEnvironment].
      */
     constructor(
         context: Context,

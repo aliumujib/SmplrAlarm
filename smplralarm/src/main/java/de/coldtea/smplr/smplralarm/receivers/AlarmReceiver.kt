@@ -3,14 +3,11 @@ package de.coldtea.smplr.smplralarm.receivers
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import de.coldtea.smplr.smplralarm.SmplrAlarmEnvironment
 import de.coldtea.smplr.smplralarm.extensions.showNotification
-import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmReceiverObjects
 import de.coldtea.smplr.smplralarm.models.launchIo
 import de.coldtea.smplr.smplralarm.models.toIntent
-import de.coldtea.smplr.smplralarm.repository.RoomAlarmStore
-import de.coldtea.smplr.smplralarm.services.AlarmSchedulerImpl
-import de.coldtea.smplr.smplralarm.services.AlarmService
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
@@ -26,14 +23,14 @@ internal class AlarmReceiver : BroadcastReceiver() {
     }
 
     private fun onAlarmReceived(context: Context, requestId: Int) {
+        val config = SmplrAlarmEnvironment.current(context)
+        val store = config.storeFactory(context)
+        val scheduler = config.schedulerFactory(context)
+        val logger = config.logger
+        logger.v("onReceive --> $requestId")
+
         runCatching {
-            SmplrAlarmLoggerHolder.logger.v("onReceive --> $requestId")
-
             if (requestId == -1) throw IllegalArgumentException("onAlarmReceived: alarm requestId $requestId is invalid")
-
-
-            val store = RoomAlarmStore(context)
-            val scheduler = AlarmSchedulerImpl(AlarmService(context), store)
 
             launchIo {
                 runCatching {
@@ -57,7 +54,7 @@ internal class AlarmReceiver : BroadcastReceiver() {
                             fullScreenIntent = fullScreenIntent,
                         )
                     } else {
-                        throw IllegalArgumentException("onAlarmReceived: notification config is not available $channel $notification")
+                        logger.v("onAlarmReceived: skipping notification as notification config is not available $channel $notification")
                     }
 
                     if (definition.weekdays.isEmpty()) {
@@ -69,14 +66,14 @@ internal class AlarmReceiver : BroadcastReceiver() {
                         scheduler.rescheduleTomorrow(definition)
                     }
                 }.onFailure { throwable ->
-                    SmplrAlarmLoggerHolder.logger.e(
+                    logger.e(
                         "updateRepeatingAlarm failed: ${throwable.message}",
                         throwable
                     )
                 }
             }
         }.onFailure { throwable ->
-            SmplrAlarmLoggerHolder.logger.e("onReceive failed: ${throwable.message}", throwable)
+            logger.e("onReceive failed: ${throwable.message}", throwable)
         }
     }
 

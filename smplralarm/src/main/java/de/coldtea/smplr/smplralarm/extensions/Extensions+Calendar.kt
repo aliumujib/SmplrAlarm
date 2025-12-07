@@ -1,5 +1,6 @@
 package de.coldtea.smplr.smplralarm.extensions
 
+import android.os.Build.VERSION
 import de.coldtea.smplr.smplralarm.models.WeekDays
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
 import java.time.DayOfWeek
@@ -70,7 +71,7 @@ private fun Calendar.setTheDay(nextWeekDay: Int) {
         return
     }
 
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+    if (VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
         val temporalDayOfWeek = when (nextWeekDay) {
             1 -> DayOfWeek.SUNDAY
             2 -> DayOfWeek.MONDAY

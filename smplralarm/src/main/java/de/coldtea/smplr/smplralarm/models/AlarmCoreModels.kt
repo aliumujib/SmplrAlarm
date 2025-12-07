@@ -1,6 +1,6 @@
 package de.coldtea.smplr.smplralarm.models
 
-import de.coldtea.smplr.smplralarm.models.WeekDays
+import kotlinx.serialization.Serializable
 
 /**
  * Core alarm definition used by the new storage/scheduling abstractions.
@@ -8,6 +8,7 @@ import de.coldtea.smplr.smplralarm.models.WeekDays
  * This is intentionally storage-agnostic. Concrete stores (e.g. Room-based
  * implementations) are responsible for mapping this model to their schemas.
  */
+@Serializable
 data class AlarmDefinition(
     val id: Int,
     val hour: Int,
@@ -29,6 +30,7 @@ data class AlarmDefinition(
  * also carries stable descriptors for activation targets instead of raw
  * Intents.
  */
+@Serializable
 data class NotificationConfig(
     val channel: NotificationChannelItem?,
     val notification: NotificationItem?,
@@ -43,13 +45,13 @@ data class NotificationConfig(
  * class names and extras as simple strings so it can be serialized via
  * kotlinx.serialization and persisted in Room.
  */
-@kotlinx.serialization.Serializable
+@Serializable
 sealed class NotificationTargetDescriptor {
 
     abstract val action: String?
     abstract val extras: Map<String, String>
 
-    @kotlinx.serialization.Serializable
+    @Serializable
     data class ScreenTarget(
         val packageName: String,
         val activityClassName: String,
@@ -57,7 +59,7 @@ sealed class NotificationTargetDescriptor {
         override val extras: Map<String, String> = emptyMap(),
     ) : NotificationTargetDescriptor()
 
-    @kotlinx.serialization.Serializable
+    @Serializable
     data class ServiceTarget(
         val packageName: String,
         val serviceClassName: String,
@@ -65,7 +67,7 @@ sealed class NotificationTargetDescriptor {
         override val extras: Map<String, String> = emptyMap(),
     ) : NotificationTargetDescriptor()
 
-    @kotlinx.serialization.Serializable
+    @Serializable
     data class BroadcastTarget(
         val packageName: String,
         val receiverClassName: String,

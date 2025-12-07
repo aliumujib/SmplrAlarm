@@ -3,14 +3,8 @@ package de.coldtea.smplr.smplralarm.receivers
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import de.coldtea.smplr.smplralarm.repository.RoomAlarmStore
-import de.coldtea.smplr.smplralarm.services.AlarmSchedulerImpl
-import de.coldtea.smplr.smplralarm.services.AlarmService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import de.coldtea.smplr.smplralarm.SmplrAlarmEnvironment
 import de.coldtea.smplr.smplralarm.models.launchIo
-import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
@@ -19,19 +13,26 @@ import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
 internal class RebootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        SmplrAlarmLoggerHolder.logger.i("onRecieve --> ${intent.action}")
+        val config = SmplrAlarmEnvironment.current(context)
+        val logger = config.logger
+
+        logger.i("onRecieve --> ${intent.action}")
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_LOCKED_BOOT_COMPLETED -> onBootComplete(context)
-            else -> SmplrAlarmLoggerHolder.logger.w("onRecieve --> Recieved illegal broadcast!")
+
+            else -> logger.w("onRecieve --> Recieved illegal broadcast!")
         }
     }
 
-    private fun onBootComplete(context: Context) =
-        runCatching {
-            val store = RoomAlarmStore(context)
-            val scheduler = AlarmSchedulerImpl(AlarmService(context), store)
+    private fun onBootComplete(context: Context) = {
 
+        val config = SmplrAlarmEnvironment.current(context)
+        val store = config.storeFactory(context)
+        val scheduler = config.schedulerFactory(context)
+        val logger = config.logger
+
+        runCatching {
             launchIo {
                 runCatching {
                     val definitions = store.getAll()
@@ -56,12 +57,13 @@ internal class RebootReceiver : BroadcastReceiver() {
                             )
                         }
                 }.onFailure { throwable ->
-                    SmplrAlarmLoggerHolder.logger.e("RebootReceiver scheduling failed: ${throwable.message}", throwable)
+                    logger.e("RebootReceiver scheduling failed: ${throwable.message}", throwable)
                 }
             }
         }.onFailure { throwable ->
-            SmplrAlarmLoggerHolder.logger.e("onBootComplete failed: ${throwable.message}", throwable)
+            logger.e("onBootComplete failed: ${throwable.message}", throwable)
         }
+    }
 
 
     companion object {

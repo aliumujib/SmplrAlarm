@@ -15,6 +15,7 @@ import de.coldtea.smplr.smplralarm.*
 import de.coldtea.smplr.smplralarm.models.NotificationItem
 import de.coldtea.smplr.smplralarm.models.broadcastTargetFromIntent
 import de.coldtea.smplr.smplralarm.models.screenTargetFromIntent
+import de.coldtea.smplr.smplralarm.repository.RoomAlarmStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -270,7 +271,7 @@ class AlarmViewModel : ViewModel() {
         applicationContext: Context
     ) {
         viewModelScope.launch {
-            smplrAlarmUpdate(applicationContext) {
+            smplrAlarmUpdate(applicationContext,) {
                 requestCode { requestCode }
                 hour { hour }
                 min { minute }

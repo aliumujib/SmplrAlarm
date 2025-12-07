@@ -8,11 +8,11 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import de.coldtea.smplr.smplralarm.R
+import de.coldtea.smplr.smplralarm.SmplrAlarmEnvironment
 import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI.Companion.SMPLR_ALARM_NOTIFICATION_ID
 import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI.Companion.SMPLR_ALARM_REQUEST_ID
 import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
 import de.coldtea.smplr.smplralarm.models.NotificationItem
-import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
 import de.coldtea.smplr.smplralarm.models.toIntent
 
 /**
@@ -25,10 +25,13 @@ private fun Context.createNotificationChannelIfNotExists(notificationChannelItem
     val notificationManager =
         getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+    val config = SmplrAlarmEnvironment.current(this)
+    val logger = config.logger
+
     // Notification channels are idempotent, calling this multiple times is safe.
     if (notificationManager.getNotificationChannel(notificationChannelItem.channelId) == null) {
         with(notificationChannelItem) {
-            SmplrAlarmLoggerHolder.logger.d("Creating notification channel: ID=$channelId, Name=${name.takeIf { it.isNotEmpty() } ?: packageName}, Importance=$importance")
+            logger.d("Creating notification channel: ID=$channelId, Name=${name.takeIf { it.isNotEmpty() } ?: packageName}, Importance=$importance")
 
             val channel = NotificationChannel(
                 channelId,
@@ -50,13 +53,14 @@ internal fun Context.showNotification(
     alarmReceivedIntent: Intent? = null,
     fullScreenIntent: Intent? = null
 ) {
+    val config = SmplrAlarmEnvironment.current(this)
+    config.logger.d("Creating notification: ID=$requestId, Channel ID=${notificationChannelItem.channelId}, Title='${notificationItem.title}' ${notificationItem.smallIcon}")
+
     runCatching {
         createNotificationChannelIfNotExists(notificationChannelItem)
 
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        SmplrAlarmLoggerHolder.logger.d("Creating notification: ID=$requestId, Channel ID=${notificationChannelItem.channelId}, Title='${notificationItem.title}' ${notificationItem.smallIcon}")
 
         val notification =
             NotificationCompat.Builder(this, notificationChannelItem.channelId).apply {
@@ -125,7 +129,7 @@ internal fun Context.showNotification(
 
         notificationManager.notify(requestId, notification)
     }.onFailure { exception ->
-        SmplrAlarmLoggerHolder.logger.e("Failed to create notification ${exception.stackTraceToString()}", exception)
+        config.logger.e("Failed to create notification ${exception.stackTraceToString()}", exception)
     }
 
     if (alarmReceivedIntent != null) {

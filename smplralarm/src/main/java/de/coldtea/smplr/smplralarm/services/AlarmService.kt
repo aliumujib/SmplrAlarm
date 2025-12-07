@@ -8,7 +8,6 @@ import android.os.Build
 import androidx.core.content.getSystemService
 import de.coldtea.smplr.smplralarm.extensions.getTimeExactForAlarmInMilliseconds
 import de.coldtea.smplr.smplralarm.models.WeekDays
-import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
 import de.coldtea.smplr.smplralarm.receivers.ActivateAppReceiver
 import de.coldtea.smplr.smplralarm.receivers.AlarmReceiver
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmReceiverObjects

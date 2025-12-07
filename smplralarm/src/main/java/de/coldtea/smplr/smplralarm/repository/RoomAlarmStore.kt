@@ -23,7 +23,7 @@ import kotlinx.serialization.json.Json
  * AlarmNotificationRepository; it is a new storage path for the refactored
  * API.
  */
-internal class RoomAlarmStore(
+class RoomAlarmStore(
     context: Context,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) : ObservableAlarmStore {
