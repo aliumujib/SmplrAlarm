@@ -3,8 +3,9 @@ package de.coldtea.smplr.smplralarm.receivers
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import de.coldtea.smplr.smplralarm.extensions.getScreenIntent
-import de.coldtea.smplr.smplralarm.repository.AlarmNotificationRepository
+import de.coldtea.smplr.smplralarm.models.SmplrAlarmReceiverObjects
+import de.coldtea.smplr.smplralarm.models.toIntent
+import de.coldtea.smplr.smplralarm.repository.RoomAlarmStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,7 +15,6 @@ import kotlinx.coroutines.launch
  */
 
 internal class ActivateAppReceiver : BroadcastReceiver() {
-    private var repository: AlarmNotificationRepository? = null
 
     override fun onReceive(context: Context, intent: Intent) {
         val requestId =
@@ -24,13 +24,17 @@ internal class ActivateAppReceiver : BroadcastReceiver() {
     }
 
     private fun onAlarmIndicatorTapped(context: Context, requestId: Int) = CoroutineScope(Dispatchers.IO).launch {
-        repository = AlarmNotificationRepository(context)
-        repository?.let {
+        if (requestId == -1) return@launch
 
-            val alarmNotification = it.getAlarmNotification(requestId)
-            if(alarmNotification.contentIntent == null) return@let
-            context.getScreenIntent(requestId, alarmNotification.contentIntent)
+        val store = RoomAlarmStore(context)
+        val definition = store.get(requestId) ?: return@launch
+        val target = definition.notificationConfig?.contentTarget ?: return@launch
+
+        val intent = target.toIntent(context).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
+
+        context.startActivity(intent)
     }
 
 }

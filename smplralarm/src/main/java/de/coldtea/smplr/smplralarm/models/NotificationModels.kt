@@ -1,11 +1,12 @@
 package de.coldtea.smplr.smplralarm.models
 
-import android.content.Intent
 import androidx.annotation.DrawableRes
+import kotlinx.serialization.Serializable
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
  */
+@Serializable
 data class NotificationChannelItem(
     val channelId: String,
     val importance: Int,
@@ -14,8 +15,8 @@ data class NotificationChannelItem(
     val description: String
 )
 
+@Serializable
 data class NotificationItem(
-    @DrawableRes
     val smallIcon: Int? = null,
     val title: String? = null,
     val message: String? = null,
@@ -23,12 +24,7 @@ data class NotificationItem(
     val autoCancel: Boolean? = null,
     val firstButtonText: String? = null,
     val secondButtonText: String? = null,
-    var firstButtonIntent: Intent? = null,
-    var secondButtonIntent: Intent? = null,
-    var notificationDismissedIntent: Intent? = null
-)
-
-internal data class IntentNotificationItem(
-    val intent: Intent?,
-    val notificationItem: NotificationItem
+    val firstButtonTarget: NotificationTargetDescriptor? = null,
+    val secondButtonTarget: NotificationTargetDescriptor? = null,
+    val dismissTarget: NotificationTargetDescriptor? = null,
 )

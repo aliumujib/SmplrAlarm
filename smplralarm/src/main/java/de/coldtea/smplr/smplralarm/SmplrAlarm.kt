@@ -4,7 +4,6 @@ import android.content.Context
 import de.coldtea.smplr.smplralarm.apis.AlarmNotificationAPI
 import de.coldtea.smplr.smplralarm.apis.ChannelManagerAPI
 import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI
-import de.coldtea.smplr.smplralarm.apis.SmplrAlarmListRequestAPI
 import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
 import de.coldtea.smplr.smplralarm.models.NotificationItem
 
@@ -64,7 +63,6 @@ import de.coldtea.smplr.smplralarm.models.NotificationItem
  * - channel: A data item which is used to create an Android Notification Channel. For more detailed information please check out the API interface of the same name
  *
  * Optional arguments
- * - requestAPI: API interface to listen the changes on the database. It returns the list of the alarms in JSON format. For more detailed information please check out --> SmplrAlarmListRequestAPI
  * - weekdays: the days of the week on which the alarm is active. An alarm without this argument set rings only once, other alarms however, repeats until they are canceled. To set this parameter the enum class WeekDays must be used.
  * - isActive: state of the alarm which indicates whether alarm is active or not
  * - intent: The intent which is executed when the notification is tapped.
@@ -72,14 +70,14 @@ import de.coldtea.smplr.smplralarm.models.NotificationItem
  * - alarmReceivedIntent : The action intent which is executed when the alarm goes off, this can be listened from the app.
  * - info pairs : pairs of strings to pass extra information
  */
-fun smplrAlarmSet(context: Context, lambda: SmplrAlarmAPI.() -> Unit): Int =
+suspend fun smplrAlarmSet(context: Context, lambda: SmplrAlarmAPI.() -> Unit): Int =
     SmplrAlarmAPI(context).apply(lambda).setAlarm()
 
 /**
  * API interface for cancelling the alarm.
  * Besides the context in the constructor, it only requires a request code.
  */
-fun smplrAlarmCancel(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
+suspend fun smplrAlarmCancel(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
     SmplrAlarmAPI(context).apply(lambda).removeAlarm()
 
 /**
@@ -89,7 +87,7 @@ fun smplrAlarmCancel(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
  * this function has been created. It simply checks everything in the database against android intent
  * manager, and creates the alarm again based on the information kept in the database.
  */
-fun smplrAlarmRenewMissingAlarms(context: Context) =
+suspend fun smplrAlarmRenewMissingAlarms(context: Context) =
     SmplrAlarmAPI(context).renewMissingAlarms()
 
 /**
@@ -104,21 +102,8 @@ fun smplrAlarmRenewMissingAlarms(context: Context) =
  * - info pairs
  * - notifications
  */
-fun smplrAlarmUpdate(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
+suspend fun smplrAlarmUpdate(context: Context, lambda: SmplrAlarmAPI.() -> Unit) =
     SmplrAlarmAPI(context).apply(lambda).updateAlarm()
-
-/**
- * API interface to set a database listener.
- * It requires following lambda function
- *
- * (String) -> Unit)
- *
- * this lambda function receives the alarms in the database as JSON formatted text.
- */
-fun smplrAlarmChangeOrRequestListener(context: Context, lambda:  ((String) -> Unit)) =
-    SmplrAlarmListRequestAPI(context).apply {
-        alarmListChangeOrRequestedListener = lambda
-    }
 
 /**
  * Data item which holds the following information that accapted and/or required by Android Notification channel

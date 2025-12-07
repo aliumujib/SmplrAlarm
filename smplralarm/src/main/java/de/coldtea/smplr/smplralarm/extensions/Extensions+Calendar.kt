@@ -1,7 +1,7 @@
 package de.coldtea.smplr.smplralarm.extensions
 
 import de.coldtea.smplr.smplralarm.models.WeekDays
-import timber.log.Timber
+import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
 import java.time.DayOfWeek
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
@@ -16,20 +16,41 @@ internal fun Calendar.getTimeExactForAlarmInMilliseconds(
     minute: Int,
     weekDays: List<WeekDays>
 ): Long {
-    return getTimeExactForAlarm(hour, minute, weekDays).timeInMillis
+    return getTimeExactForAlarm(hour, minute, 0, 0, weekDays).timeInMillis
+}
+
+internal fun Calendar.getTimeExactForAlarmInMilliseconds(
+    hour: Int,
+    minute: Int,
+    second: Int,
+    weekDays: List<WeekDays>
+): Long {
+    return getTimeExactForAlarm(hour, minute, second, 0, weekDays).timeInMillis
+}
+
+internal fun Calendar.getTimeExactForAlarmInMilliseconds(
+    hour: Int,
+    minute: Int,
+    second: Int,
+    millis: Int,
+    weekDays: List<WeekDays>
+): Long {
+    return getTimeExactForAlarm(hour, minute, second, millis, weekDays).timeInMillis
 }
 
 private fun Calendar.getTimeExactForAlarm(
     hour: Int,
     minute: Int,
+    second: Int,
+    millis: Int,
     weekDays: List<WeekDays>
 ): Calendar {
     timeInMillis = System.currentTimeMillis()
 
     set(Calendar.HOUR_OF_DAY, hour)
     set(Calendar.MINUTE, minute)
-    set(Calendar.SECOND, 0)
-    set(Calendar.MILLISECOND, 0)
+    set(Calendar.SECOND, second)
+    set(Calendar.MILLISECOND, millis)
 
     val sortedWeekDays = weekDays.sortedBy { it.value }
 
@@ -62,7 +83,7 @@ private fun Calendar.setTheDay(nextWeekDay: Int) {
         }
 
         if (temporalDayOfWeek == null) {
-            Timber.e("SmplrAlarm -> The day of week could not be set!")
+            SmplrAlarmLoggerHolder.logger.e("SmplrAlarm -> The day of week could not be set!")
             return
         }
 

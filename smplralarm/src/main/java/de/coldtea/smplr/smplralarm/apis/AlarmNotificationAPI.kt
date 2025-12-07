@@ -1,8 +1,8 @@
 package de.coldtea.smplr.smplralarm.apis
 
-import android.content.Intent
 import androidx.annotation.DrawableRes
 import de.coldtea.smplr.smplralarm.models.NotificationItem
+import de.coldtea.smplr.smplralarm.models.NotificationTargetDescriptor
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
@@ -19,9 +19,9 @@ class AlarmNotificationAPI {
     internal var autoCancel: Boolean? = null
     internal var firstButtonText: String? = null
     internal var secondButtonText: String? = null
-    internal var firstButtonIntent: Intent? = null
-    internal var secondButtonIntent: Intent? = null
-    internal var notificationDismissedIntent: Intent? = null
+    internal var firstButtonTarget: NotificationTargetDescriptor? = null
+    internal var secondButtonTarget: NotificationTargetDescriptor? = null
+    internal var dismissTarget: NotificationTargetDescriptor? = null
 
     //endregion
 
@@ -55,16 +55,16 @@ class AlarmNotificationAPI {
         this.secondButtonText = secondButtonText()
     }
 
-    fun firstButtonIntent(firstButtonIntent: () -> Intent) {
-        this.firstButtonIntent = firstButtonIntent()
+    fun firstButtonTarget(firstButtonTarget: () -> NotificationTargetDescriptor) {
+        this.firstButtonTarget = firstButtonTarget()
     }
 
-    fun secondButtonIntent(secondButtonIntent: () -> Intent) {
-        this.secondButtonIntent = secondButtonIntent()
+    fun secondButtonTarget(secondButtonTarget: () -> NotificationTargetDescriptor) {
+        this.secondButtonTarget = secondButtonTarget()
     }
 
-    fun notificationDismissedIntent(notificationDismissedIntent: () -> Intent) {
-        this.notificationDismissedIntent = notificationDismissedIntent()
+    fun dismissTarget(dismissTarget: () -> NotificationTargetDescriptor) {
+        this.dismissTarget = dismissTarget()
     }
 
     //endregion
@@ -73,16 +73,16 @@ class AlarmNotificationAPI {
 
     internal fun build(): NotificationItem =
         NotificationItem(
-            smallIcon,
-            title,
-            message,
-            bigText,
-            autoCancel,
-            firstButtonText,
-            secondButtonText,
-            firstButtonIntent,
-            secondButtonIntent,
-            notificationDismissedIntent
+            smallIcon = smallIcon,
+            title = title,
+            message = message,
+            bigText = bigText,
+            autoCancel = autoCancel,
+            firstButtonText = firstButtonText,
+            secondButtonText = secondButtonText,
+            firstButtonTarget = firstButtonTarget,
+            secondButtonTarget = secondButtonTarget,
+            dismissTarget = dismissTarget,
         )
 
     //endregion

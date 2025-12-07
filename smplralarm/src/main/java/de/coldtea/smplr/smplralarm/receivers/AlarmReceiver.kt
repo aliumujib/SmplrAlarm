@@ -4,21 +4,19 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import de.coldtea.smplr.smplralarm.extensions.showNotification
-import de.coldtea.smplr.smplralarm.repository.AlarmNotificationRepository
+import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
+import de.coldtea.smplr.smplralarm.models.SmplrAlarmReceiverObjects
+import de.coldtea.smplr.smplralarm.models.launchIo
+import de.coldtea.smplr.smplralarm.models.toIntent
+import de.coldtea.smplr.smplralarm.repository.RoomAlarmStore
+import de.coldtea.smplr.smplralarm.services.AlarmSchedulerImpl
 import de.coldtea.smplr.smplralarm.services.AlarmService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import timber.log.Timber
-import java.text.SimpleDateFormat
-import java.util.*
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
  */
 
 internal class AlarmReceiver : BroadcastReceiver() {
-    private var repository: AlarmNotificationRepository? = null
 
     override fun onReceive(context: Context, intent: Intent) {
         val requestId =
@@ -27,57 +25,59 @@ internal class AlarmReceiver : BroadcastReceiver() {
         onAlarmReceived(context, requestId)
     }
 
-    private fun onAlarmReceived(context: Context, requestId: Int){
-        try {
-            repository = AlarmNotificationRepository(context)
-            val alarmService = AlarmService(context)
+    private fun onAlarmReceived(context: Context, requestId: Int) {
+        runCatching {
+            SmplrAlarmLoggerHolder.logger.v("onReceive --> $requestId")
 
-            Timber.v("onReceive --> $requestId")
+            if (requestId == -1) throw IllegalArgumentException("onAlarmReceived: alarm requestId $requestId is invalid")
 
-            if (requestId == -1) return
 
-            CoroutineScope(Dispatchers.IO).launch {
+            val store = RoomAlarmStore(context)
+            val scheduler = AlarmSchedulerImpl(AlarmService(context), store)
 
-                repository?.let {
-                    try {
-                        val alarmNotification = it.getAlarmNotification(requestId)
+            launchIo {
+                runCatching {
+                    val definition = store.get(requestId) ?: throw IllegalArgumentException("onAlarmReceived: alarm with requestId $requestId is not found")
 
-                        alarmNotification.notificationChannelItem?.let { channel ->
-                            alarmNotification.notificationItem?.let { notification ->
-                                context.showNotification(
-                                    requestId = requestId,
-                                    notificationChannelItem = channel,
-                                    notificationItem = notification,
-                                    contentIntent = alarmNotification.contentIntent,
-                                    alarmReceivedIntent = alarmNotification.alarmReceivedIntent,
-                                    fullScreenIntent = alarmNotification.fullScreenIntent
-                                )
-                            }
-                        }
+                    val config = definition.notificationConfig
+                    val channel = config?.channel
+                    val notification = config?.notification
 
-                        if (alarmNotification.weekDays.isNullOrEmpty())
-                            it.deactivateSingleAlarmNotification(requestId)
-                        else
-                            alarmService.resetAlarmTomorrow(alarmNotification)
-                    } catch (ex: IllegalArgumentException) {
-                        Timber.e("updateRepeatingAlarm: The alarm intended to be removed does not exist! ${ex.stackTraceToString()}")
-                    } catch (ex: Exception) {
-                        Timber.e("updateRepeatingAlarm: $ex ")
+                    val contentIntent = config?.contentTarget?.toIntent(context)
+                    val fullScreenIntent = config?.fullScreenTarget?.toIntent(context)
+                    val alarmReceivedIntent = config?.alarmReceivedTarget?.toIntent(context)
+
+                    if (channel != null && notification != null) {
+                        context.showNotification(
+                            requestId = requestId,
+                            notificationChannelItem = channel,
+                            notificationItem = notification,
+                            contentIntent = contentIntent,
+                            alarmReceivedIntent = alarmReceivedIntent,
+                            fullScreenIntent = fullScreenIntent,
+                        )
+                    } else {
+                        throw IllegalArgumentException("onAlarmReceived: notification config is not available $channel $notification")
                     }
+
+                    if (definition.weekdays.isEmpty()) {
+                        // One-shot alarm: mark inactive and cancel.
+                        store.update(definition.copy(isActive = false))
+                        scheduler.cancel(definition.id)
+                    } else {
+                        // Repeating alarm: schedule for the next day.
+                        scheduler.rescheduleTomorrow(definition)
+                    }
+                }.onFailure { throwable ->
+                    SmplrAlarmLoggerHolder.logger.e(
+                        "updateRepeatingAlarm failed: ${throwable.message}",
+                        throwable
+                    )
                 }
-
             }
-
-        } catch (ex: Exception) {
-            Timber.e("onReceive: exception --> $ex")
+        }.onFailure { throwable ->
+            SmplrAlarmLoggerHolder.logger.e("onReceive failed: ${throwable.message}", throwable)
         }
-    }
-
-    private fun Calendar.dateTime(): Pair<String, String> {
-        val sdfDate = SimpleDateFormat("dd/M/yyyy", Locale.getDefault())
-        val sdfTime = SimpleDateFormat("hh:mm:ss", Locale.getDefault())
-
-        return sdfDate.format(time) to sdfTime.format(time)
     }
 
     companion object {

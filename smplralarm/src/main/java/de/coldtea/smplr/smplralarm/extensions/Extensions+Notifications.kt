@@ -12,7 +12,8 @@ import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI.Companion.SMPLR_ALARM_NOTI
 import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI.Companion.SMPLR_ALARM_REQUEST_ID
 import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
 import de.coldtea.smplr.smplralarm.models.NotificationItem
-import timber.log.Timber
+import de.coldtea.smplr.smplralarm.models.SmplrAlarmLoggerHolder
+import de.coldtea.smplr.smplralarm.models.toIntent
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
@@ -27,7 +28,7 @@ private fun Context.createNotificationChannelIfNotExists(notificationChannelItem
     // Notification channels are idempotent, calling this multiple times is safe.
     if (notificationManager.getNotificationChannel(notificationChannelItem.channelId) == null) {
         with(notificationChannelItem) {
-            Timber.d("Creating notification channel: ID=$channelId, Name=${name.takeIf { it.isNotEmpty() } ?: packageName}, Importance=$importance")
+            SmplrAlarmLoggerHolder.logger.d("Creating notification channel: ID=$channelId, Name=${name.takeIf { it.isNotEmpty() } ?: packageName}, Importance=$importance")
 
             val channel = NotificationChannel(
                 channelId,
@@ -55,7 +56,7 @@ internal fun Context.showNotification(
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        Timber.d("Creating notification: ID=$requestId, Channel ID=${notificationChannelItem.channelId}, Title='${notificationItem.title}' ${notificationItem.smallIcon}")
+        SmplrAlarmLoggerHolder.logger.d("Creating notification: ID=$requestId, Channel ID=${notificationChannelItem.channelId}, Title='${notificationItem.title}' ${notificationItem.smallIcon}")
 
         val notification =
             NotificationCompat.Builder(this, notificationChannelItem.channelId).apply {
@@ -69,11 +70,12 @@ internal fun Context.showNotification(
                     setAutoCancel(autoCancel != false)
                     setAllowSystemGeneratedContextualActions(false)
 
-                    if (notificationItem.notificationDismissedIntent != null) {
+                    notificationItem.dismissTarget?.let { target ->
+                        val intent = target.toIntent(this@showNotification)
                         setDeleteIntent(
                             this@showNotification.getBroadcast(
                                 requestId,
-                                requireNotNull(notificationItem.notificationDismissedIntent)
+                                intent
                             )
                         )
                     }
@@ -91,29 +93,39 @@ internal fun Context.showNotification(
                         )
                     }
 
-                    if (notificationItem.firstButtonText != null && notificationItem.firstButtonIntent != null) addAction(
-                        0,
-                        notificationItem.firstButtonText,
-                        this@showNotification.getBroadcast(
-                            requestId,
-                            requireNotNull(notificationItem.firstButtonIntent)
-                        )
-                    )
+                    notificationItem.firstButtonText?.let { text ->
+                        notificationItem.firstButtonTarget?.let { target ->
+                            val intent = target.toIntent(this@showNotification)
+                            addAction(
+                                0,
+                                text,
+                                this@showNotification.getBroadcast(
+                                    requestId,
+                                    intent,
+                                )
+                            )
+                        }
+                    }
 
-                    if (notificationItem.secondButtonText != null && notificationItem.secondButtonIntent != null) addAction(
-                        0,
-                        notificationItem.secondButtonText,
-                        this@showNotification.getBroadcast(
-                            requestId,
-                            requireNotNull(notificationItem.secondButtonIntent)
-                        )
-                    )
+                    notificationItem.secondButtonText?.let { text ->
+                        notificationItem.secondButtonTarget?.let { target ->
+                            val intent = target.toIntent(this@showNotification)
+                            addAction(
+                                0,
+                                text,
+                                this@showNotification.getBroadcast(
+                                    requestId,
+                                    intent,
+                                )
+                            )
+                        }
+                    }
                 }
             }.build()
 
         notificationManager.notify(requestId, notification)
     }.onFailure { exception ->
-        Timber.e("Failed to create notification ${exception.stackTraceToString()}")
+        SmplrAlarmLoggerHolder.logger.e("Failed to create notification ${exception.stackTraceToString()}", exception)
     }
 
     if (alarmReceivedIntent != null) {

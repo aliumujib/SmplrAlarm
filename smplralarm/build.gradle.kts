@@ -47,6 +47,7 @@ dependencies {
 
     testImplementation(libs.test.junit)
     androidTestImplementation(libs.test.androidx.junit)
+    androidTestImplementation("androidx.test:runner:1.5.2")
 
     // Timber
     implementation(libs.timber)
