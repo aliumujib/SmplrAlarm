@@ -50,7 +50,6 @@ internal fun Context.showNotification(
     notificationChannelItem: NotificationChannelItem,
     notificationItem: NotificationItem,
     contentIntent: Intent? = null,
-    alarmReceivedIntent: Intent? = null,
     fullScreenIntent: Intent? = null
 ) {
     val config = SmplrAlarmEnvironment.current(this)
@@ -130,11 +129,6 @@ internal fun Context.showNotification(
         notificationManager.notify(requestId, notification)
     }.onFailure { exception ->
         config.logger.e("Failed to create notification ${exception.stackTraceToString()}", exception)
-    }
-
-    if (alarmReceivedIntent != null) {
-        alarmReceivedIntent.putExtra(SMPLR_ALARM_REQUEST_ID, requestId)
-        sendBroadcast(alarmReceivedIntent)
     }
 }
 

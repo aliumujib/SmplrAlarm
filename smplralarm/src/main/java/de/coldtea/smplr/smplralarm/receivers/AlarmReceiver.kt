@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import de.coldtea.smplr.smplralarm.SmplrAlarmEnvironment
+import de.coldtea.smplr.smplralarm.apis.SmplrAlarmAPI.Companion.SMPLR_ALARM_REQUEST_ID
 import de.coldtea.smplr.smplralarm.extensions.showNotification
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmReceiverObjects
 import de.coldtea.smplr.smplralarm.models.launchIo
@@ -34,7 +35,8 @@ internal class AlarmReceiver : BroadcastReceiver() {
 
             launchIo {
                 runCatching {
-                    val definition = store.get(requestId) ?: throw IllegalArgumentException("onAlarmReceived: alarm with requestId $requestId is not found")
+                    val definition = store.get(requestId)
+                        ?: throw IllegalArgumentException("onAlarmReceived: alarm with requestId $requestId is not found")
 
                     val config = definition.notificationConfig
                     val channel = config?.channel
@@ -45,16 +47,24 @@ internal class AlarmReceiver : BroadcastReceiver() {
                     val alarmReceivedIntent = config?.alarmReceivedTarget?.toIntent(context)
 
                     if (channel != null && notification != null) {
+                        logger.v("onAlarmReceived: sending notification to config ${config}")
                         context.showNotification(
                             requestId = requestId,
                             notificationChannelItem = channel,
                             notificationItem = notification,
                             contentIntent = contentIntent,
-                            alarmReceivedIntent = alarmReceivedIntent,
                             fullScreenIntent = fullScreenIntent,
                         )
                     } else {
                         logger.v("onAlarmReceived: skipping notification as notification config is not available $channel $notification")
+                    }
+
+                    if (alarmReceivedIntent != null) {
+                        logger.v("onAlarmReceived: sending broadcast to config ${config.alarmReceivedTarget}")
+                        alarmReceivedIntent.putExtra(SMPLR_ALARM_REQUEST_ID, requestId)
+                        context.sendBroadcast(alarmReceivedIntent)
+                    } else {
+                        logger.v("onAlarmReceived: skipping broadcast Alarm received intent is null")
                     }
 
                     if (definition.weekdays.isEmpty()) {
