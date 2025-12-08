@@ -29,8 +29,6 @@ class AlarmSchedulerImpl(
         second: Int,
         weekDays: List<WeekDays>,
     ) {
-        // Second-level precision will be threaded through AlarmService
-        // in a later step. For now we keep the existing hour/minute API.
         alarmService.setAlarm(
             requestCode = id,
             hour = hour,
