@@ -68,6 +68,13 @@ private fun Calendar.setTheDay(nextWeekDay: Int) {
 
     if (todayDayOfWeek < nextWeekDay) {
         set(Calendar.DAY_OF_WEEK, nextWeekDay)
+        
+        // BUG FIX: Check if we accidentally went backwards in time
+        // This happens when setting DAY_OF_WEEK to a value > today but Calendar
+        // interprets it as the most recent occurrence (which is in the past)
+        if (timeInMillis < System.currentTimeMillis()) {
+            add(Calendar.WEEK_OF_YEAR, 1)
+        }
         return
     }
 

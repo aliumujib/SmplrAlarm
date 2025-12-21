@@ -201,6 +201,44 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
             Text("Cancel Alarm")
         }
 
+        // TEST BUTTON: Set alarm for 9:00 AM with all weekdays (should fire immediately if bug exists)
+        Button(onClick = {
+            val currentCal = Calendar.getInstance()
+            val testHour = 9
+            val testMinute = 0
+            
+            // Set all weekdays
+            val allWeekdays = WeekInfo(
+                monday = true,
+                tuesday = true,
+                wednesday = true,
+                thursday = true,
+                friday = true,
+                saturday = true,
+                sunday = true
+            )
+            
+            val currentHour = currentCal.get(Calendar.HOUR_OF_DAY)
+            val currentMinute = currentCal.get(Calendar.MINUTE)
+            
+            Toast.makeText(
+                context,
+                "TEST: Setting 9:00 AM alarm (current time: $currentHour:$currentMinute). Check logs!",
+                Toast.LENGTH_LONG
+            ).show()
+            
+            alarmViewModel.setNoNotificationAlarm(
+                testHour,
+                testMinute,
+                0,
+                0,
+                allWeekdays,
+                context.applicationContext
+            )
+        }, modifier = buttonModifier) {
+            Text("🐛 TEST: 9AM All Days (Check Logs)")
+        }
+
         LaunchedEffect(scheduleState) {
             when (val state = scheduleState) {
                 is AlarmViewModel.AlarmScheduleState.Success -> {
