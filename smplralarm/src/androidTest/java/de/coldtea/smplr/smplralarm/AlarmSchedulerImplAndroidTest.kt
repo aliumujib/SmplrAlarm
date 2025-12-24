@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import de.coldtea.smplr.smplralarm.models.AlarmDefinition
 import de.coldtea.smplr.smplralarm.models.AlarmStore
+import de.coldtea.smplr.smplralarm.models.DefaultAlarmTimeCalculator
 import de.coldtea.smplr.smplralarm.models.WeekDays
 import de.coldtea.smplr.smplralarm.services.AlarmSchedulerImpl
 import de.coldtea.smplr.smplralarm.services.AlarmService
@@ -13,7 +14,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
-private class RecordingAlarmService(context: Context) : AlarmService(context) {
+private class RecordingAlarmService(context: Context) : AlarmService(context, DefaultAlarmTimeCalculator()) {
     data class Call(
         val requestCode: Int,
         val hour: Int,
@@ -53,7 +54,8 @@ class AlarmSchedulerImplAndroidTest {
     fun schedule_passesAllTimeComponentsToAlarmService() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val recordingService = RecordingAlarmService(context)
-        val scheduler = AlarmSchedulerImpl(recordingService, NoopAlarmStoreAndroid)
+        val scheduler = AlarmSchedulerImpl(recordingService, NoopAlarmStoreAndroid,
+            DefaultAlarmTimeCalculator())
 
         val id = 42
         val hour = 7

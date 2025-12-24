@@ -6,24 +6,23 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.content.getSystemService
-import de.coldtea.smplr.smplralarm.extensions.getTimeExactForAlarmInMilliseconds
+import de.coldtea.smplr.smplralarm.models.AlarmTimeCalculator
 import de.coldtea.smplr.smplralarm.models.WeekDays
 import de.coldtea.smplr.smplralarm.receivers.ActivateAppReceiver
 import de.coldtea.smplr.smplralarm.receivers.AlarmReceiver
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmReceiverObjects
-import java.util.*
 
 /**
  * Created by [Yasar Naci Gündüz](https://github.com/ColdTea-Projects).
  */
-open class AlarmService(val context: Context) {
+open class AlarmService(
+    val context: Context,
+    private val alarmTimeCalculator: AlarmTimeCalculator,
+) {
 
     private val alarmManager: AlarmManager by lazy {
         context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     }
-
-    private val calendar
-        get() = Calendar.getInstance()
 
     open fun setAlarm(
         requestCode: Int,
@@ -46,8 +45,13 @@ open class AlarmService(val context: Context) {
 
         val alarmReceiverIntent = receiverIntent ?: createReceiverPendingIntent(requestCode, 0)
         val openAppIntent = createOpenAppPendingIntent(requestCode, 0)
-        val exactAlarmTime =
-            calendar.getTimeExactForAlarmInMilliseconds(hour, min, second, millis, weekDays)
+        val exactAlarmTime = alarmTimeCalculator.computeNextTriggerTimeMillis(
+            hour = hour,
+            minute = min,
+            second = second,
+            millis = millis,
+            weekDays = weekDays,
+        )
 
         val alarmClockInfo = AlarmManager.AlarmClockInfo(
             exactAlarmTime,

@@ -4,8 +4,10 @@ import android.content.Context
 import de.coldtea.smplr.smplralarm.models.AlarmIdGenerator
 import de.coldtea.smplr.smplralarm.models.AlarmScheduler
 import de.coldtea.smplr.smplralarm.models.AlarmStore
+import de.coldtea.smplr.smplralarm.models.AlarmTimeCalculator
 import de.coldtea.smplr.smplralarm.models.DefaultAlarmIdGenerator
 import de.coldtea.smplr.smplralarm.models.DefaultSmplrAlarmLogger
+import de.coldtea.smplr.smplralarm.models.DefaultAlarmTimeCalculator
 import de.coldtea.smplr.smplralarm.models.SmplrAlarmLogger
 import de.coldtea.smplr.smplralarm.repository.RoomAlarmStore
 import de.coldtea.smplr.smplralarm.services.AlarmSchedulerImpl
@@ -23,8 +25,15 @@ data class SmplrAlarmConfig(
     val storeFactory: (Context) -> AlarmStore,
     val idGenerator: AlarmIdGenerator = DefaultAlarmIdGenerator,
     val logger: SmplrAlarmLogger = DefaultSmplrAlarmLogger,
-    val schedulerFactory: (Context) -> AlarmScheduler =
-        { context -> AlarmSchedulerImpl(AlarmService(context), storeFactory.invoke(context)) },
+    val alarmTimeCalculator: AlarmTimeCalculator = DefaultAlarmTimeCalculator(),
+    val schedulerFactory: (Context) -> AlarmScheduler = { context ->
+        val alarmService = AlarmService(context, alarmTimeCalculator)
+        AlarmSchedulerImpl(
+            alarmService = alarmService,
+            store = storeFactory.invoke(context),
+            alarmTimeCalculator = alarmTimeCalculator,
+        )
+    },
 )
 
 object SmplrAlarmEnvironment {

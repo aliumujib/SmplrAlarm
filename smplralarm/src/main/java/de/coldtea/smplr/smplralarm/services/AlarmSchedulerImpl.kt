@@ -1,15 +1,11 @@
 package de.coldtea.smplr.smplralarm.services
 
-import de.coldtea.smplr.smplralarm.extensions.getTimeExactForAlarmInMilliseconds
 import de.coldtea.smplr.smplralarm.models.AlarmDefinition
 import de.coldtea.smplr.smplralarm.models.AlarmScheduler
 import de.coldtea.smplr.smplralarm.models.AlarmStore
+import de.coldtea.smplr.smplralarm.models.AlarmTimeCalculator
 import de.coldtea.smplr.smplralarm.models.WeekDays
 import de.coldtea.smplr.smplralarm.models.launchIo
-import java.util.Calendar
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 /**
  * Default implementation of [AlarmScheduler] that delegates to [AlarmService].
@@ -20,6 +16,7 @@ import kotlinx.coroutines.launch
 class AlarmSchedulerImpl(
     private val alarmService: AlarmService,
     private val store: AlarmStore,
+    private val alarmTimeCalculator: AlarmTimeCalculator,
 ) : AlarmScheduler {
 
     override fun schedule(
@@ -72,8 +69,13 @@ class AlarmSchedulerImpl(
         minute: Int,
         weekDays: List<WeekDays>,
     ) {
-        val nextTime = Calendar.getInstance()
-            .getTimeExactForAlarmInMilliseconds(hour, minute, weekDays)
+        val nextTime = alarmTimeCalculator.computeNextTriggerTimeMillis(
+            hour = hour,
+            minute = minute,
+            second = 0,
+            millis = 0,
+            weekDays = weekDays,
+        )
 
         launchIo {
             val current = store.get(id) ?: return@launchIo

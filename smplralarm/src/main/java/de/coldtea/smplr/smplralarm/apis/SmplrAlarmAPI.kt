@@ -7,7 +7,9 @@ import de.coldtea.smplr.smplralarm.models.AlarmDefinition
 import de.coldtea.smplr.smplralarm.models.AlarmIdGenerator
 import de.coldtea.smplr.smplralarm.models.AlarmScheduler
 import de.coldtea.smplr.smplralarm.models.AlarmStore
+import de.coldtea.smplr.smplralarm.models.AlarmTimeCalculator
 import de.coldtea.smplr.smplralarm.models.DefaultAlarmIdGenerator
+import de.coldtea.smplr.smplralarm.models.DefaultAlarmTimeCalculator
 import de.coldtea.smplr.smplralarm.models.DefaultSmplrAlarmLogger
 import de.coldtea.smplr.smplralarm.models.NotificationChannelItem
 import de.coldtea.smplr.smplralarm.models.NotificationConfig
@@ -29,6 +31,7 @@ class SmplrAlarmAPI {
 
     private val store: AlarmStore
     private val scheduler: AlarmScheduler
+    private val calculator: AlarmTimeCalculator
     private val idGenerator: AlarmIdGenerator
     private val logger: SmplrAlarmLogger
     private val context: Context
@@ -54,7 +57,7 @@ class SmplrAlarmAPI {
     private var fullScreenTarget: NotificationTargetDescriptor? = null
     private var alarmReceivedTarget: NotificationTargetDescriptor? = null
 
-    private val alarmService by lazy { AlarmService(context) }
+    private val alarmService by lazy { AlarmService(context, calculator) }
 
     private var infoPairs: List<Pair<String, String>>? = null
 
@@ -95,6 +98,7 @@ class SmplrAlarmAPI {
         store = SmplrAlarmEnvironment.current(context).storeFactory(context),
         idGenerator = SmplrAlarmEnvironment.current(context).idGenerator,
         logger = SmplrAlarmEnvironment.current(context).logger,
+        calculator = SmplrAlarmEnvironment.current(context).alarmTimeCalculator,
         scheduler = SmplrAlarmEnvironment.current(context)
             .schedulerFactory(context),
     )
@@ -109,13 +113,19 @@ class SmplrAlarmAPI {
         store: AlarmStore = RoomAlarmStore(context),
         idGenerator: AlarmIdGenerator = DefaultAlarmIdGenerator,
         logger: SmplrAlarmLogger = DefaultSmplrAlarmLogger,
-        scheduler: AlarmScheduler = AlarmSchedulerImpl(AlarmService(context), store),
+        calculator: AlarmTimeCalculator = DefaultAlarmTimeCalculator(),
+        scheduler: AlarmScheduler = AlarmSchedulerImpl(
+            alarmService = AlarmService(context = context, alarmTimeCalculator = calculator),
+            store = store,
+            alarmTimeCalculator = calculator
+        ),
     ) {
         this.context = context
         this.store = store
         this.scheduler = scheduler
         this.idGenerator = idGenerator
         this.logger = logger
+        this.calculator = calculator
         SmplrAlarmLoggerHolder.logger = logger
     }
 

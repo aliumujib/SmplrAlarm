@@ -3,6 +3,7 @@ package de.coldtea.smplr.smplralarm
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import de.coldtea.smplr.smplralarm.models.DefaultAlarmTimeCalculator
 import de.coldtea.smplr.smplralarm.models.WeekDays
 import de.coldtea.smplr.smplralarm.services.AlarmService
 import org.junit.Assert.assertTrue
@@ -15,7 +16,7 @@ class AlarmServiceInstrumentedTest {
     @Test
     fun setAlarm_doesNotCrash_andCanBeQueried() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val service = AlarmService(context)
+        val service = AlarmService(context, DefaultAlarmTimeCalculator())
 
         val id = 12345
         service.setAlarm(
