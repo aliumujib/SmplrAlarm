@@ -25,43 +25,40 @@ internal class RebootReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun onBootComplete(context: Context) = {
+    private fun onBootComplete(context: Context) {
 
         val config = SmplrAlarmEnvironment.current(context)
         val store = config.storeFactory(context)
         val scheduler = config.schedulerFactory(context)
         val logger = config.logger
 
-        runCatching {
-            launchIo {
-                runCatching {
-                    val definitions = store.getAll()
-                    val now = System.currentTimeMillis()
+        launchIo {
+            runCatching {
+                val definitions = store.getAll()
+                val now = System.currentTimeMillis()
 
-                    definitions
-                        .asSequence()
-                        .filter { it.isActive }
-                        .filter { def ->
-                            // Conservative policy: reschedule if we either don't know
-                            // nextTriggerTime yet (null) or it is still in the future.
-                            val next = def.nextTriggerTime
-                            next == null || next >= now
-                        }
-                        .forEach { definition ->
-                            scheduler.schedule(
-                                id = definition.id,
-                                hour = definition.hour,
-                                minute = definition.minute,
-                                second = definition.second,
-                                weekDays = definition.weekdays,
-                            )
-                        }
-                }.onFailure { throwable ->
-                    logger.e("RebootReceiver scheduling failed: ${throwable.message}", throwable)
-                }
+                definitions
+                    .asSequence()
+                    .filter { it.isActive }
+                    .filter { def ->
+                        // Conservative policy: reschedule if we either don't know
+                        // nextTriggerTime yet (null) or it is still in the future.
+                        val next = def.nextTriggerTime
+                        next == null || next >= now
+                    }
+                    .forEach { definition ->
+                        scheduler.schedule(
+                            id = definition.id,
+                            hour = definition.hour,
+                            minute = definition.minute,
+                            second = definition.second,
+                            weekDays = definition.weekdays,
+                        )
+                    }
+                logger.e("RebootReceiver scheduling success")
+            }.onFailure { throwable ->
+                logger.e("RebootReceiver scheduling failed: ${throwable.message}", throwable)
             }
-        }.onFailure { throwable ->
-            logger.e("onBootComplete failed: ${throwable.message}", throwable)
         }
     }
 
