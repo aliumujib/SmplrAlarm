@@ -1,5 +1,6 @@
 package de.coldtea.smplr.smplralarm.models
 
+import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -11,9 +12,14 @@ import java.time.ZoneId
  *
  * This is designed to be behaviorally equivalent to the existing
  * Calendar-based helpers, but implemented with modern time types.
+ *
+ * @param zoneId The time zone to use for calculations. Defaults to system default.
+ * @param clock The clock to use for getting current time. Defaults to system clock.
+ *              This parameter is primarily for testing purposes.
  */
 class DefaultAlarmTimeCalculator(
     private val zoneId: ZoneId = ZoneId.systemDefault(),
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : AlarmTimeCalculator {
 
     override fun computeNextTriggerTimeMillis(
@@ -23,7 +29,7 @@ class DefaultAlarmTimeCalculator(
         millis: Int,
         weekDays: List<WeekDays>,
     ): Long {
-        val nowInstant = Instant.now()
+        val nowInstant = clock.instant()
         val now = nowInstant.atZone(zoneId)
 
         val targetTime = LocalTime.of(hour, minute, second, millis * 1_000_000)
@@ -76,8 +82,9 @@ class DefaultAlarmTimeCalculator(
             date = date.plusDays(1)
         }
 
-        // Fallback: if we somehow didn't find anything, just take the next allowed weekday.
-        date = today
+        // Fallback: continue from where we left off (date is now today+7).
+        // Don't reset to today - that would return a past date for single-day schedules
+        // where the time has already passed.
         while (true) {
             if (date.dayOfWeek in allowed) return date
             date = date.plusDays(1)
